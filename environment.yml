@@ -5,6 +5,8 @@ channels:
   - defaults
 dependencies:
   - python
-  - snakemake
-  - multiqc
-  - fastqc
+  - bioconda::snakemake
+  - bioconda::multiqc
+  - bioconda::fastqc
+  - biconda::star
+  - conda-forge::biopython
