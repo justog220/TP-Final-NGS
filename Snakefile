@@ -9,17 +9,22 @@ SAMPLES = get_samples()
 SAMPLES_DIR = "data/reads"
 
 
-rule all:
+rule qc_all:
     input:
         "results/quality_control/multiqc/multiqc_report.html",
-        expand("results/quality_control/fastqc/{sample}_fastqc.html", sample=SAMPLES)
+
+rule mapping_all:
+    input:
+        expand("results/quality_control/fastqc/{sample}_fastqc.html", sample=SAMPLES),
+        expand("results/mapping/alignments_STAR/{sample}Aligned.sortedByCoord.out.bam", sample=SAMPLES),
+        expand("results/mapping/alignments_STAR/{sample}ReadsPerGene.out.tab", sample=SAMPLES)
 
 rule create_dirs:
     output:
         directory("results/quality_control/fastqc"),
         directory("results/quality_control/multiqc"),
-        directory("mapping/index_STAR"),
-        directory("mapping/alignment_STAR")
+        directory("results/mapping/index_STAR"),
+        directory("results/mapping/alignment_STAR")
     shell:
         "mkdir -p {output}"
 
