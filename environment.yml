@@ -1,0 +1,10 @@
+name: tp-final-ngs
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python
+  - snakemake
+  - multiqc
+  - fastqc
