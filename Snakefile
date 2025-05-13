@@ -35,7 +35,10 @@ rule mapping_all:
     input:
         expand("results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam", replic=REPLICS),
         expand("results/mapping/alignments_STAR/{replic}/{replic}ReadsPerGene.out.tab", replic=REPLICS),
-        expand("results/qc_qualimap/{replic}/qualimapReport.html", replic=REPLICS)
+        expand("results/mapping/alignments_STAR/{replic}/{replic}Coverage.bw", replic=REPLICS),
+        expand("results/qc_qualimap/{replic}/qualimapReport.html", replic=REPLICS),
+        "results/igv_visualization/igv_report.html"
+
 
 rule create_dirs:
     output:
