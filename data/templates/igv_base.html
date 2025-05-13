@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/igv@2.12.3/dist/igv.min.js"></script>
+    <script src="igv_config.js"></script>
+    <style>#igv-container { height: 90vh; margin: 20px; }</style>
+</head>
+<body>
+    <div id="igv-container"></div>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const igvDiv = document.getElementById("igv-container");
+            igv.createBrowser(igvDiv, igvConfig);
+        });
+    </script>
+</body>
+</html>

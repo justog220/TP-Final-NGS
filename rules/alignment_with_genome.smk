@@ -75,3 +75,139 @@ rule quality_control_mapping:
                                                 -p $protocol \
                                                 -pe
             """
+
+rule indexing_bam:
+    input:
+        bam_file="results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam"
+    output:
+        "results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam.bai"
+    shell:
+        """
+        samtools index {input.bam_file}
+        """
+
+rule calculate_coverage:
+    input:
+        bam_file="results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam",
+        bai_file="results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam.bai"
+    output:
+        coverage_file="results/mapping/alignments_STAR/{replic}/{replic}Coverage.bw"
+    shell:
+        """
+        bamCoverage -b {input.bam_file} -o {output.coverage_file}
+        """
+
+rule generate_igv_tracks:
+    input:
+        bws = expand("results/mapping/alignments_STAR/{replic}/{replic}Coverage.bw", replic=REPLICS),
+        bams = expand("results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam", replic=REPLICS),
+        bais = expand("results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam.bai", replic=REPLICS),
+        fasta_reference = "data/reference/sacCer_ChrI.fa",
+        fai_reference = "data/reference/sacCer_ChrI.fa.fai",
+        gtf_reference = "data/reference/sacCer_genes.gtf"
+    output:
+        "results/igv_visualization/igv_tracks.json"
+    run:
+        import json
+
+        tracks_config = {
+            "genome": {
+                "fastaURL": input.fasta_reference,
+                "indexURL": input.fai_reference,
+                "gtfURL": input.gtf_reference
+            },
+            "tracks": []
+        }
+
+        for replic in REPLICS:
+            tracks_config["tracks"].append({
+                "name": replic,
+                "bw": f"results/mapping/alignments_STAR/{replic}/{replic}Coverage.bw",
+                "bam": f"results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam",
+                "bai": f"results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam.bai"
+            })
+
+        # Guardar el JSON
+        with open(output[0], 'w') as f:
+            json.dump(tracks_config, f, indent=4)
+
+# rule generate_igv_report:
+#     input:
+#         json = "results/igv_visualization/igv_tracks.json",
+#         template = "data/templates/igv_template.html"
+#     output:
+#         "results/igv_visualization/igv_report.html"
+#     run:
+#         import json
+#         from jinja2 import Template
+
+#         # Cargar el JSON con las rutas de los tracks
+#         with open(input.json, 'r') as f:
+#             tracks_config = json.load(f)
+
+#         # Cargar la plantilla directamente desde data/templates/
+#         with open(input.template, 'r') as f:
+#             template_content = f.read()
+
+#         # Renderizar el HTML combinando template + JSON
+#         html_content = Template(template_content).render(
+#             genome=tracks_config["genome"],
+#             tracks=tracks_config["tracks"]
+#         )
+
+#         # Guardar el HTML final en results/
+#         with open(output[0], 'w') as f:
+#             f.write(html_content)
+
+rule generate_igv_report:
+    input:
+        bws = expand("results/mapping/alignments_STAR/{replic}/{replic}Coverage.bw", replic=REPLICS),
+        bams = expand("results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam", replic=REPLICS),
+        fasta = "data/reference/sacCer_ChrI.fa",
+        gtf = "data/reference/sacCer_genes.gtf",
+        template_base = "data/templates/igv_base.html",
+        template_config = "data/templates/igv_config.js"
+    output:
+        html = "results/igv_visualization/igv_report.html",
+        config = "results/igv_visualization/igv_config.js"
+    run:
+        import json
+        import shutil
+        import base64
+
+        # 1. Generar configuración JSON
+        config = {
+            "genome": {
+                "id": "yeast_custom",
+                "name": "Yeast Chromosome",
+                "fastaURL": "data:base64," + base64.b64encode(open(input.fasta, "rb").read()).decode(),
+                "tracks": [{
+                    "name": "Annotations",
+                    "type": "annotation",
+                    "format": "gtf",
+                    "url": "data:base64," + base64.b64encode(open(input.gtf, "rb").read()).decode(),
+                    "displayMode": "EXPANDED"
+                }]
+            },
+            "tracks": [
+                {
+                    "name": f"{replic} Coverage",
+                    "type": "wig",
+                    "format": "bigwig",
+                    "url": "data:base64," + base64.b64encode(open(f"results/mapping/alignments_STAR/{replic}/{replic}Coverage.bw", "rb").read()).decode()
+                }
+                for replic in REPLICS
+            ]
+        }
+
+        # 2. Guardar configuración como JS
+        with open(output.config, 'w') as f:
+            f.write(f"const igvConfig = {json.dumps(config, indent=2)};")
+
+        # 3. Copiar plantilla base y modificar
+        shutil.copy2(input.template_base, output.html)
+
+        # 4. Inyectar configuración directamente en el HTML
+        with open(output.html, 'a') as f_html:
+            with open(output.config, 'r') as f_config:
+                f_html.write(f"\n<script>\n{f_config.read()}\n</script>")
