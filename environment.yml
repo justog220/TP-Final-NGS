@@ -11,3 +11,5 @@ dependencies:
   - biconda::star
   - conda-forge::biopython
   - bioconda::qualimap
+  - bioconda::deeptools
+  - bioconda::samtools
