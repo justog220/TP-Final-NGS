@@ -79,5 +79,9 @@ Este paso genera visualizaciones, listas de genes diferencialmente expresados y 
 Los datos utilizados corresponden a lecturas *paired-end* alineadas al cromosoma I de *S. cerevisiae*, accesibles en SRA bajo el número de acceso SRS307298.
 Por cuestiones de tiempo de cómputo, se utilizará un set reducido de lecturas previamente filtradas.
 
+## :warning: Aclaracion
+
+Algunos análisis no se incluyen en este pipeline, sino que están disponibles a través del informe del trabajo práctico.
+
 ##  👥 Autor
 <a href="https://github.com/justog220"><img src="https://avatars.githubusercontent.com/u/85772318?v=4" title="justog220" width="50" height="50"></a>
