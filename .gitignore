@@ -1,3 +1,5 @@
-quality_control/*
-
+# Snakemake log files
 .snakemake/
+
+# Results, on final version maybe include them, or runing the pipeline on push?
+results/*

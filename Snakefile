@@ -2,20 +2,22 @@ import os
 
 # Obtener muestras automáticamente
 def get_samples():
-    return [f.replace(".fastq", "") for f in os.listdir("data") if f.endswith(".fastq")]
+    return [f.replace(".fastq", "") for f in os.listdir("data/reads") if f.endswith(".fastq")]
 
 SAMPLES = get_samples()
+
+SAMPLES_DIR = "data/reads"
 
 
 rule all:
     input:
-        "quality_control/multiqc/multiqc_report.html",
-        expand("quality_control/fastqc/{sample}_fastqc.html", sample=SAMPLES)
+        "results/quality_control/multiqc/multiqc_report.html",
+        expand("results/quality_control/fastqc/{sample}_fastqc.html", sample=SAMPLES)
 
 rule create_dirs:
     output:
-        directory("quality_control/fastqc"),
-        directory("quality_control/multiqc"),
+        directory("results/quality_control/fastqc"),
+        directory("results/quality_control/multiqc"),
         directory("mapping/index_STAR"),
         directory("mapping/alignment_STAR")
     shell:

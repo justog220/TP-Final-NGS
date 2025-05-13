@@ -1,20 +1,16 @@
 rule fastqc:
     input:
-        "data/{sample}.fastq"
+        os.path.join(SAMPLES_DIR, "{sample}.fastq")
     output:
-        html = "quality_control/fastqc/{sample}_fastqc.html",
-        zip = "quality_control/fastqc/{sample}_fastqc.zip"
-    conda:
-        "environment.yml"
+        html = "results/quality_control/fastqc/{sample}_fastqc.html",
+        zip = "results/quality_control/fastqc/{sample}_fastqc.zip"
     shell:
-        "fastqc {input} --outdir quality_control/fastqc/"
+        "fastqc {input} --outdir results/quality_control/fastqc/"
 
 rule multiqc:
     input:
-        expand("quality_control/fastqc/{sample}_fastqc.html", sample=SAMPLES)
+        expand("results/quality_control/fastqc/{sample}_fastqc.html", sample=SAMPLES)
     output:
-        "quality_control/multiqc/multiqc_report.html"
-    conda:
-        "environment.yml"
+        "results/quality_control/multiqc/multiqc_report.html"
     shell:
-        "multiqc quality_control/fastqc/ --outdir quality_control/multiqc"
+        "multiqc results/quality_control/fastqc/ --outdir results/quality_control/multiqc"
