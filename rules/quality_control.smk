@@ -5,7 +5,7 @@ rule fastqc:
         html = "results/quality_control/fastqc/{sample}_fastqc.html",
         zip = "results/quality_control/fastqc/{sample}_fastqc.zip"
     shell:
-        "fastqc {input} --outdir results/quality_control/fastqc/"
+        "fastqc {input} --outdir results/quality_control/fastqc/ -q"
 
 rule multiqc:
     input:
