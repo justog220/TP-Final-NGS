@@ -10,7 +10,7 @@ SAMPLES = get_samples()
 rule all:
     input:
         "quality_control/multiqc/multiqc_report.html",
-        expand("quality_control/fastqc/{sample}_fastqc.html", sample=SAMPLES)  # <- ¡Añadido!
+        expand("quality_control/fastqc/{sample}_fastqc.html", sample=SAMPLES)
 
 rule create_dirs:
     output:
