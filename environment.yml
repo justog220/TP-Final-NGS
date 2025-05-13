@@ -10,3 +10,4 @@ dependencies:
   - bioconda::fastqc
   - biconda::star
   - conda-forge::biopython
+  - bioconda::qualimap
