@@ -1,0 +1,73 @@
+---
+title: "Análisis de expresión diferencial - Levadura"
+output: html_document
+---
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(version = "3.21")
+
+BiocManager::install("DESeq2")
+BiocManager::install("biomaRt")
+```
+```{r}
+library(DESeq2)
+library(biomaRt)
+library(tidyverse)
+library(ggplot2)
+library(reshape2)
+library(pheatmap)
+library(ggrepel)
+```
+
+
+```{r}
+input_dir <- "results/mapping/alignments_STAR"
+output_dir <- "results/differential_expression/counts_STAR"
+
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir, recursive=TRUE)
+}
+
+files <- list.files(input_dir, pattern = "\\ReadsPerGene.out.tab$", full.names = TRUE, recursive = TRUE)
+
+for (archivo in files) {
+  # Leemos saltándonos las 4 líneas iniciales y nombrando las 4 columnas
+  data <- read_tsv(archivo,
+                   skip = 4,
+                   col_names = c("Gene_ID", "Unstranded", "Forward", "Reverse"))
+  # Construimos el nombre de muestra a partir del nombre de fichero
+  sample <- str_split(basename(archivo), "_")[[1]][1]
+  # Exportamos solo Gene_ID + Unstranded
+  out_file <- file.path(output_dir, paste0(sample, "_counts.txt"))
+  write_tsv(data[, c("Gene_ID", "Unstranded")],
+            out_file,
+            col_names = FALSE)
+    message("Escrito: ", out_file)
+}
+```
+
+
+```{r}
+sampletable <- data.frame(
+  SampleName = c("batch1", "batch2", "batch3", 
+                 "quimiostato1", "quimiostato2", "quimiostato3"),
+  FileName = c("batch1_counts.txt", "batch2_counts.txt", "batch3_counts.txt",
+               "quimiostato1_counts.txt", "quimiostato2_counts.txt", "quimiostato3_counts.txt"),
+  Condition = c(rep("Batch", 3), rep("Quimiostato", 3))
+)
+
+rownames(sampletable) <- gsub("_counts.txt", "", sampletable$FileName)
+```
+
+```{r}
+setwd("results/differential_expression")
+
+se_star <- DESeqDataSetFromHTSeqCount(
+  sampleTable = sampletable,
+  directory = "counts_STAR",
+  design = ~ Condition
+)
+```
+
