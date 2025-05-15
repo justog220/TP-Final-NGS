@@ -127,37 +127,9 @@ rule generate_igv_tracks:
                 "bai": f"results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam.bai"
             })
 
-        # Guardar el JSON
         with open(output[0], 'w') as f:
             json.dump(tracks_config, f, indent=4)
 
-# rule generate_igv_report:
-#     input:
-#         json = "results/igv_visualization/igv_tracks.json",
-#         template = "data/templates/igv_template.html"
-#     output:
-#         "results/igv_visualization/igv_report.html"
-#     run:
-#         import json
-#         from jinja2 import Template
-
-#         # Cargar el JSON con las rutas de los tracks
-#         with open(input.json, 'r') as f:
-#             tracks_config = json.load(f)
-
-#         # Cargar la plantilla directamente desde data/templates/
-#         with open(input.template, 'r') as f:
-#             template_content = f.read()
-
-#         # Renderizar el HTML combinando template + JSON
-#         html_content = Template(template_content).render(
-#             genome=tracks_config["genome"],
-#             tracks=tracks_config["tracks"]
-#         )
-
-#         # Guardar el HTML final en results/
-#         with open(output[0], 'w') as f:
-#             f.write(html_content)
 
 rule generate_igv_report:
     input:
@@ -196,7 +168,7 @@ rule generate_igv_report:
                     "format": "bigwig",
                     "url": "data:base64," + base64.b64encode(open(f"results/mapping/alignments_STAR/{replic}/{replic}Coverage.bw", "rb").read()).decode()
                 }
-                for replic in REPLICS
+                for replic in sorted(REPLICS)
             ]
         }
 
