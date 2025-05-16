@@ -12,7 +12,7 @@ rule make_star_index:
         genomeDir="results/mapping/index_STAR",
         genomeFastaFiles=input.genome_reference,
         sjdbGTFfile=input.gtf_reference,
-        sjdbOverhang=48, #TODO: revisar, la profe en la guía dice que es igual al menor tamaño de lectura menos uno, esto confirmaria la necesidad de filtrar por longitud
+        sjdbOverhang=24, #TODO: lo deje como 24 porque el largo es de 25, quizás podría determinarse de forma dinámica.
         genomeSAindexNbases=lambda wildcards, input: min(14, math.log2(sum(len(record) for record in Bio.SeqIO.parse(input.genome_reference, "fasta")))/2 - 1),
         outFileNamePrefix="sacCer_chr1",
     threads: 4
@@ -29,7 +29,6 @@ rule make_star_index:
 
 rule align_STAR:
     input:
-        # pair_of_fastq = lambda wildcards: [f"data/reads/{replic}_1.fastq", f"data/reads/{replic}_2.fastq"],
         fastq_1 = "data/reads/{replic}_1.fastq",
         fastq_2 = "data/reads/{replic}_2.fastq",
         index_flag = "results/mapping/index_STAR/.index_complete"
