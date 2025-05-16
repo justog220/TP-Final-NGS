@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/igv@2.12.3/dist/igv.min.js"></script>
+</head>
+<body>
+    <div id="igv-container" style="padding: 20px; margin: 10px; border: 1px solid #ddd"></div>
+    <script>
+        const options = {
+            genome: {
+                id: "yeast_chromosome",  // Identificador único
+                name: "Yeast Chromosome", // Nombre para mostrar
+                fastaURL: "data/reference/sacCer_ChrI.fa",
+                indexURL: "data/reference/sacCer_ChrI.fa.fai",
+                cytobandURL: "",  // Opcional, para bandas citogenéticas
+                tracks: [
+                    {
+                        name: "Annotations",
+                        type: "annotation",
+                        format: "gtf",
+                        url: "data/reference/sacCer_genes.gtf",
+                        displayMode: "EXPANDED"
+                    }
+                ]
+            },
+            tracks: [
+                {
+                    name: "BigWig Track",
+                    type: "wig",
+                    format: "bigwig",
+                    url: "results/mapping/alignments_STAR/batch1/batch1Coverage.bw"
+                },
+                {
+                    name: "BAM Track",
+                    type: "alignment",
+                    format: "bam",
+                    url: "results/mapping/alignments_STAR/batch1/batch1Aligned.sortedByCoord.out.bam",
+                    indexURL: "results/mapping/alignments_STAR/batch1/batch1Aligned.sortedByCoord.out.bam.bai"  // ¡Necesario para BAM!
+                }
+            ]
+        };
+        const igvDiv = document.getElementById("igv-container");
+        igv.createBrowser(igvDiv, options);
+    </script>
+</body>
+</html>

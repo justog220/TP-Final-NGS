@@ -3,3 +3,7 @@
 
 # Results, on final version maybe include them, or runing the pipeline on push?
 results/*
+
+notebooks/*txt
+
+notebooks/differential_expression_files/*

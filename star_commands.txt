@@ -1,0 +1,17 @@
+quimiostato1:
+STAR --genomeDir results/mapping/index_STAR --readFilesIn data/reads/quimiostato1_1.fastq,data/reads/quimiostato1_2.fastq --outSAMtype BAM SortedByCoordinate --quantMode GeneCounts --outFileNamePrefix results/mapping/alignments_STAR/quimiostato1 --runThreadN 8
+
+quimiostato2:
+STAR --genomeDir results/mapping/index_STAR --readFilesIn data/reads/quimiostato2_1.fastq,data/reads/quimiostato2_2.fastq --outSAMtype BAM SortedByCoordinate --quantMode GeneCounts --outFileNamePrefix results/mapping/alignments_STAR/quimiostato2 --runThreadN 8
+
+quimiostato3:
+STAR --genomeDir results/mapping/index_STAR --readFilesIn data/reads/quimiostato3_1.fastq,data/reads/quimiostato3_2.fastq --outSAMtype BAM SortedByCoordinate --quantMode GeneCounts --outFileNamePrefix results/mapping/alignments_STAR/quimiostato3 --runThreadN 8
+
+batch1:
+STAR --genomeDir results/mapping/index_STAR --readFilesIn data/reads/batch1_1.fastq,data/reads/batch1_2.fastq --outSAMtype BAM SortedByCoordinate --quantMode GeneCounts --outFileNamePrefix results/mapping/alignments_STAR/batch1 --runThreadN 8
+
+batch2:
+STAR --genomeDir results/mapping/index_STAR --readFilesIn data/reads/batch2_1.fastq,data/reads/batch2_2.fastq --outSAMtype BAM SortedByCoordinate --quantMode GeneCounts --outFileNamePrefix results/mapping/alignments_STAR/batch2 --runThreadN 8
+
+batch3:
+STAR --genomeDir results/mapping/index_STAR --readFilesIn data/reads/batch3_1.fastq,data/reads/batch3_2.fastq --outSAMtype BAM SortedByCoordinate --quantMode GeneCounts --outFileNamePrefix results/mapping/alignments_STAR/batch3 --runThreadN 8

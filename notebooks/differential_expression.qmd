@@ -1,9 +1,13 @@
 ---
 title: "Análisis de expresión diferencial - Levadura"
 output: html_document
+author: Garcia Just
+date: onsave
 ---
 
 ```{r}
+#| code-fold: true
+#| output: false
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install(version = "3.21")
@@ -15,6 +19,8 @@ BiocManager::install("rtracklayer")
 ```
 
 ```{r}
+#| code-fold: true
+#| output: false
 library(DESeq2)
 library(biomaRt)
 library(tidyverse)
@@ -23,9 +29,14 @@ library(reshape2)
 library(pheatmap)
 library(ggrepel)
 library(rtracklayer)
+library(plotly)
+library(dplyr)
 ```
 
+# Preparando datos de alineamiento con [STAR](https://github.com/alexdobin/STAR)
+
 ```{r}
+#| output: false
 input_dir <- "../results/mapping/alignments_STAR"
 output_dir <- "../results/differential_expression/counts_STAR"
 
@@ -51,6 +62,7 @@ for (archivo in files) {
 }
 ```
 
+# Preparando tabla de muestras
 ```{r}
 sampletable <- data.frame(
   SampleName = c("batch1", "batch2", "batch3", 
@@ -63,6 +75,7 @@ sampletable <- data.frame(
 rownames(sampletable) <- gsub("_counts.txt", "", sampletable$FileName)
 ```
 
+# Importación recuentos STAR
 ```{r}
 setwd("../results/differential_expression")
 
@@ -73,36 +86,56 @@ se_star <- DESeqDataSetFromHTSeqCount(
 )
 ```
 
+# Filtrado de genes
+
+En este caso se decidió filtrar por genes que tengan al menos 10 reads.
+
 ```{r}
-#Numero de genes antes del filtrado:
-nrow(se_star)
-#Filtrado (por conteo, que tengan por lo menos más de 10 reads):
+#| code-fold: true
+genes_before <- nrow(se_star)
+
+se_star_before <- se_star
+
+```
+```{r}
 se_star <- se_star[rowSums(counts(se_star)) > 10, ]
-#Número de genes luego del filtrado:
-nrow(se_star)
 ```
 
 ```{r}
+#| code-fold: true
+genes_after <- nrow(se_star)
+
+df <- data.frame(
+  Etapa = c("Antes del filtrado", "Después del filtrado"),
+  Genes = c(genes_before, genes_after)
+)
+
+ggplot(df, aes(x=Etapa, y=Genes, fill=Etapa)) +
+  geom_bar(stat="identity", width=0.5) +
+  geom_text(aes(label=Genes), vjust=-0.5, size=5) +
+  theme_minimal() +
+  labs(title="Número de genes antes y después del filtrado", y="Cantidad de genes") +
+  theme(legend.position = "none")
+```
+
+# Importación de anotación
+
+En este caso, se trabajo con un archivo GTF (`../data/reference/sacCer_genes.gtf`))brindado por la catedra, específico para esta cepa.
+```{r}
 # ---- Preparar anotación con archivo GTF ----
 
-# Archivo GTF utilizado en el alineamiento (ajustar la ruta si hace falta)
+# Archivo GTF utilizado en el alineamiento 
 gtf_file <- "../data/reference/sacCer_genes.gtf"
 
-# Importar el GTF completo
 gtf <- import(gtf_file)
 
-unique(gtf$type)
-
-# Filtrar solo entradas de tipo "gene"
+# Filtro por exon, no por CDS por si tengo algún ARN que no codifica para una proteína
 genes_gtf <- gtf[gtf$type == "exon"]
-
-# Mostrar los metadatos disponibles (equivalente a listAttributes en biomart)
-head(mcols(genes_gtf))
 
 # Convertir a data frame para manejarlo
 annot <- as.data.frame(mcols(genes_gtf))
 
-# Seleccionar columnas equivalentes a biomaRt: gene_id, gene_name, chromosome, start, end, description (si existe)
+# Seleccionar columnas de interés
 annot_df <- data.frame(
   gene_id = annot$gene_id,
   external_gene_name = annot$gene_name,
@@ -112,13 +145,19 @@ annot_df <- data.frame(
   description = if ("description" %in% colnames(annot)) annot$description else NA
 )
 
-# Mostrar dimensiones de la anotación generada
 dim(annot_df)
 
-# Vista previa
-head(annot_df)
+knitr::kable(head(mcols(genes_gtf)), caption = "Metadatos disponibles (primeras filas)")
 ```
 
+# Ajuste modelo estadístico DESeq2
+
+Para el análisis de la expresión diferencial se va a usar DESeq2, por ello se procede a ajustar el modelo, con los datos ya transformados y filtrados previamente.
+
+Se calcula el conteo normalizado de los datos, con una transformación log2 + 1 y finalmente se agrega la anotación que se cargo desde el GTF.
+
+Estos datos son en suma almacenados en `normalized_counts_log2_star.txt`
+}
 ```{r}
 #---- Ajustar modelo estadístico DESeq2----
 
@@ -140,6 +179,7 @@ norm_counts_symbols <- merge(data.frame(ID=rownames(norm_counts),
 write.table(norm_counts_symbols, "normalized_counts_log2_star.txt", quote=F, col.names=T, row.names=F, sep="\t")
 ```
 
+# Análisis de expresión diferencial
 ```{r}
 #----Análisis de expresión diferencial----
 
@@ -249,7 +289,6 @@ ggplot(pcaData, aes(x = PC1, y = PC2, color = Condition, label = name)) +
 ## Volcano Plot
 
 ```{r}
-library(plotly)
 # Buscar el mínimo pvalue positivo (no cero)
 min_nonzero_p <- min(de_symbols$pvalue[de_symbols$pvalue > 0], na.rm = TRUE)
 
@@ -258,7 +297,6 @@ de_symbols <- de_symbols %>%
   mutate(pvalue = ifelse(pvalue == 0, min_nonzero_p / 10, pvalue))
 
 
-library(dplyr)
 
 de_clean <- de_symbols %>%
   filter(is.finite(log2FoldChange), is.finite(pvalue)) %>%

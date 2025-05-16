@@ -122,11 +122,7 @@ de_symbols <- merge(data.frame(ID=rownames(de), de, check.names=FALSE), annot, b
 #Escribir los resultados de expresión diferencial en el archivo
 write.table(de_symbols, "deseq2_results.txt", quote=F, col.names=T, row.names=F, sep="\t")
 
-#----Selección de genes----
-
-#Cuantos genes están expresados diferencialmente
-de_select <- de_symbols[de_symbols$padj < 0.05 & !is.na(de_symbols$padj) & abs(de_symbols$log2FoldChange) > 0.5,]
-write.table(de_select, "deseq2_selection.txt", quote=F, col.names=T, row.names=F, sep="\t")
+ 
 
 #---- Visualización----
 
