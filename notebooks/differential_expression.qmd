@@ -1,8 +1,10 @@
----
+n---
 title: "Análisis de expresión diferencial - Levadura"
 output: html_document
 author: Garcia Just
 date: onsave
+html:
+  toc: true
 ---
 
 ```{r}
@@ -179,7 +181,7 @@ norm_counts_symbols <- merge(data.frame(ID=rownames(norm_counts),
 write.table(norm_counts_symbols, "normalized_counts_log2_star.txt", quote=F, col.names=T, row.names=F, sep="\t")
 ```
 
-# Análisis de expresión diferencial
+# Análisis de expresión diferencial2
 ```{r}
 #----Análisis de expresión diferencial----
 
@@ -212,7 +214,7 @@ write.table(de_symbols,
 ```{r}
 #----Selección de genes----
 
-#Cuantos genes están expresados diferencialmente
+
 de_select <- de_symbols[de_symbols$padj < 0.05 & !is.na(de_symbols$padj) & abs(de_symbols$log2FoldChange) > 0.5,]
 
 write.table(de_select,
@@ -312,7 +314,6 @@ de_clean$delabel <- NA
 idx <- which(de_clean$diffexpressed != "NO" & !is.na(de_clean$ID))
 de_clean$delabel[idx] <- de_clean$ID[idx]
 
-# Ahora sí, ya podés hacer volcano plots ggplot2 y plotly sin perder puntos.
 plotly_volcano <- de_clean %>%
   plot_ly(
     x = ~log2FoldChange,
@@ -369,5 +370,120 @@ gg_volcano <- ggplot(de_clean, aes(x = log2FoldChange, y = -log10(pvalue), color
   )
 
 print(gg_volcano)
+```
+
+# Análisis funcional
+
+Reajusto los criterios para que sean más estrictos:
+
+-  $padj < 0.01$
+-  $|log2FC| > 1$ (al menos duplicación/división por 2)
+
+```{r}
+# ---- Selección precisa de genes DE para análisis funcional ----
+
+# Asegurar que las columnas necesarias estén presentes
+de_symbols_clean <- de_symbols %>%
+  filter(!is.na(padj), !is.na(log2FoldChange), !is.na(gene_name))
+
+# Aplicar filtros estrictos
+de_filtrados <- de_symbols_clean %>%
+  filter(
+    padj < 0.01,
+    abs(log2FoldChange) > 1
+  )
+
+# Extraer solo nombres únicos de genes conocidos
+genes_interes <- de_filtrados %>%
+  distinct(gene_name) %>%
+  pull(gene_name)
+
+# Verificamos
+length(genes_interes)
+head(genes_interes)
+```
+
+## YeastEnrichr
+
+En primer lugar, se lleva a cabo un enriquecimiento con (YeastEnrichr)[https://maayanlab.cloud/YeastEnrichr/]. Esto se realiza a través de su API con el siguiente código.
+
+### Envío de lista de genes de interés
+```{r}
+library(httr)
+library(jsonlite)
+library(dplyr)
+library(readr)
+
+# ---- Paso 1: Enviar la lista ----
+genes_str <- paste(genes_interes, collapse = "\n")
+description <- "Genes DE en levadura - Quimiostato vs Batch"
+
+ENRICHR_ADD_URL <- "http://maayanlab.cloud/YeastEnrichr/addList"
+response <- POST(
+  url = ENRICHR_ADD_URL,
+  body = list(
+    list = genes_str,
+    description = description
+  ),
+  encode = "multipart"
+)
+
+# Verificamos que la llamada fue exitosa
+if (status_code(response) != 200) {
+  stop("Error al analizar la lista de genes")
+}
+
+# Extraemos la respuesta JSON
+result <- content(response, as = "parsed", simplifyVector = TRUE)
+
+print(result)
+
+raw_text <- as.character(result)  # convertir html_document a texto
+
+# Extraemos el JSON que está dentro de <p> ... </p>
+json_text <- str_extract(raw_text, "\\{[^\\}]+\\}")
+
+# Si falla el regex, mejor hacer así (más robusto):
+json_text <- sub(".*(\\{.*\\}).*", "\\1", raw_text)
+
+# Parseamos JSON para obtener la lista
+parsed_result <- fromJSON(json_text)
+
+# Sacamos userListId dinámicamente
+userListId <- parsed_result$userListId
+shortID <- parsed_result$shortId
+```
+
+### Obtención de resultados
+
+```{r}
+# ---- Paso 2: Obtener resultados ----
+
+ENRICHR_ENRICH_URL <- "http://maayanlab.cloud/YeastEnrichr/enrich"
+gene_set_library <- "GO_Biological_Process_2021"  # Cambiar por otras si querés
+
+query_url <- paste0(ENRICHR_ENRICH_URL, "?userListId=", userListId,
+                    "&backgroundType=", gene_set_library)
+
+res <- GET(query_url)
+if (http_error(res)) stop("❌ Error al obtener los resultados de enriquecimiento")
+
+data <- content(res, as = "parsed")[[gene_set_library]]
+
+# ---- Paso 3: Procesar y guardar tabla ----
+
+# Convertimos a data frame
+colnames <- c("Rank", "Term", "P-value", "Z-score", "Combined Score", 
+              "Overlapping Genes", "Adjusted P-value", "Old P", "Old Adj P")
+
+enrichment_df <- as.data.frame(do.call(rbind, data), stringsAsFactors = FALSE)
+colnames(enrichment_df) <- colnames
+
+# Guardar como .tsv
+output_file <- paste0("enrichment_", gene_set_library, ".tsv")
+write_tsv(enrichment_df, output_file)
+
+cat("✅ Resultados guardados en:", output_file, "\n")
+
 ```
 
