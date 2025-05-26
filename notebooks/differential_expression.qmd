@@ -460,7 +460,7 @@ shortID <- parsed_result$shortId
 # ---- Paso 2: Obtener resultados ----
 
 ENRICHR_ENRICH_URL <- "http://maayanlab.cloud/YeastEnrichr/enrich"
-gene_set_library <- "GO_Biological_Process_2021"  # Cambiar por otras si querés
+gene_set_library <- "GO_Biological_Process_2018"  # Cambiar por otras si querés
 
 query_url <- paste0(ENRICHR_ENRICH_URL, "?userListId=", userListId,
                     "&backgroundType=", gene_set_library)
@@ -469,7 +469,9 @@ res <- GET(query_url)
 if (http_error(res)) stop("❌ Error al obtener los resultados de enriquecimiento")
 
 data <- content(res, as = "parsed")[[gene_set_library]]
+```
 
+```
 # ---- Paso 3: Procesar y guardar tabla ----
 
 # Convertimos a data frame
