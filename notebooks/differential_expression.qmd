@@ -1,4 +1,4 @@
-n---
+---
 title: "Análisis de expresión diferencial - Levadura"
 output: html_document
 author: Garcia Just
