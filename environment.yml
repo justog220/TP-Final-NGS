@@ -8,7 +8,7 @@ dependencies:
   - bioconda::snakemake
   - bioconda::multiqc
   - bioconda::fastqc
-  - biconda::star
+  - bioconda::star
   - conda-forge::biopython
   - bioconda::qualimap
   - bioconda::deeptools
