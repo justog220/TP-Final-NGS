@@ -249,7 +249,7 @@ ggplot(pcaData, aes(x = PC1, y = PC2, color = Condition, label = name)) +
 ## Volcano Plot
 
 ```{r}
-library(plotly)
+library(plotly )
 # Buscar el mínimo pvalue positivo (no cero)
 min_nonzero_p <- min(de_symbols$pvalue[de_symbols$pvalue > 0], na.rm = TRUE)
 
