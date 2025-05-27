@@ -34,6 +34,7 @@ library(ggrepel)
 library(rtracklayer)
 library(plotly)
 library(dplyr)
+library(nord)
 ```
 
 # Preparando datos de alineamiento con [STAR](https://github.com/alexdobin/STAR)
@@ -383,12 +384,14 @@ gg_volcano <- ggplot(de_clean, aes(x = log2FoldChange, y = -log10(pvalue), color
 print(gg_volcano)
 ```
 
-# Análisis funcional
+# Análisis funcional con YeastEnrichr
 
 Reajusto los criterios para que sean más estrictos:
 
 -  $padj < 0.01$
--  $|log2FC| > 1$ (al menos duplicación/división por 2)
+-  $|log_2(FC)| > 1$ (al menos duplicación/división por 2)
+
+Con estos criterior construyo dos listas, los genes upregulados $log_2(FC) > 1$ y downregulados $log_2(FC) < -1$
 
 ```{r}
 # ---- Selección precisa de genes DE para análisis funcional ----
@@ -397,26 +400,41 @@ Reajusto los criterios para que sean más estrictos:
 de_symbols_clean <- de_symbols %>%
   filter(!is.na(padj), !is.na(log2FoldChange), !is.na(gene_name))
 
+padj_corte <- 0.01
+log2FoldChange_corte <- 1
 # Aplicar filtros estrictos
-de_filtrados <- de_symbols_clean %>%
+de_filtrados_up <- de_symbols_clean %>%
   filter(
-    padj < 0.01,
-    abs(log2FoldChange) > 1
+    padj < padj_corte,
+    log2FoldChange > log2FoldChange_corte
+  )
+
+de_filtrados_down <- de_symbols_clean %>% 
+  filter(
+    padj < padj_corte,
+    log2FoldChange < -log2FoldChange_corte
   )
 
 # Extraer solo nombres únicos de genes conocidos
-genes_interes <- de_filtrados %>%
+genes_interes_up <- de_filtrados_up %>%
+  distinct(gene_name) %>%
+  pull(gene_name)
+
+genes_interes_down <- de_filtrados_down %>%
   distinct(gene_name) %>%
   pull(gene_name)
 
 # Verificamos
-length(genes_interes)
-head(genes_interes)
+length(genes_interes_up)
+head(genes_interes_up)
+
+length(genes_interes_down)
+head(genes_interes_down)
 ```
 
-## YeastEnrichr
+## Upregulated
 
-En primer lugar, se lleva a cabo un enriquecimiento con (YeastEnrichr)[https://maayanlab.cloud/YeastEnrichr/]. Esto se realiza a través de su API con el siguiente código.
+Se lleva a cabo un enriquecimiento con [YeastEnrichr](https://maayanlab.cloud/YeastEnrichr/). Esto se realiza a través de su API con el siguiente código. Primero hay que enviar la lista de genes que nos interesa analizar. Una vez que 
 
 ### Envío de lista de genes de interés
 ```{r}
@@ -426,43 +444,42 @@ library(dplyr)
 library(readr)
 
 # ---- Paso 1: Enviar la lista ----
-genes_str <- paste(genes_interes, collapse = "\n")
-description <- "Genes DE en levadura - Quimiostato vs Batch"
-
-ENRICHR_ADD_URL <- "http://maayanlab.cloud/YeastEnrichr/addList"
-response <- POST(
-  url = ENRICHR_ADD_URL,
-  body = list(
-    list = genes_str,
-    description = description
-  ),
-  encode = "multipart"
-)
-
-# Verificamos que la llamada fue exitosa
-if (status_code(response) != 200) {
-  stop("Error al analizar la lista de genes")
+enviar_a_enrichr <- function(lista_genes, descripcion = "Lista de genes") {
+  ENRICHR_ADD_URL <- "http://maayanlab.cloud/YeastEnrichr/addList"
+  
+  genes_str <- paste(lista_genes, collapse = "\n")
+  
+  response <- POST(
+    url = ENRICHR_ADD_URL,
+    body = list(
+      list = genes_str,
+      description = descripcion
+    ),
+    encode = "multipart"
+  )
+  
+  if (status_code(response) != 200) {
+    stop("Error al analizar la lista de genes")
+  }
+  
+  # Extraer respuesta como texto
+  raw_text <- as.character(content(response, as = "text", encoding = "UTF-8"))
+  
+  # Extraer JSON dentro del texto HTML
+  json_text <- sub(".*(\\{.*\\}).*", "\\1", raw_text)
+  
+  # Parsear JSON
+  parsed_result <- fromJSON(json_text)
+  
+  return(list(
+    userListId = parsed_result$userListId,
+    shortId = parsed_result$shortId
+  ))
 }
 
-# Extraemos la respuesta JSON
-result <- content(response, as = "parsed", simplifyVector = TRUE)
 
-print(result)
-
-raw_text <- as.character(result)  # convertir html_document a texto
-
-# Extraemos el JSON que está dentro de <p> ... </p>
-json_text <- str_extract(raw_text, "\\{[^\\}]+\\}")
-
-# Si falla el regex, mejor hacer así (más robusto):
-json_text <- sub(".*(\\{.*\\}).*", "\\1", raw_text)
-
-# Parseamos JSON para obtener la lista
-parsed_result <- fromJSON(json_text)
-
-# Sacamos userListId dinámicamente
-userListId <- parsed_result$userListId
-shortID <- parsed_result$shortId
+resultado_up <- enviar_a_enrichr(genes_interes_up, "Lista de genes Upregulated")
+resultado_down <- enviar_a_enrichr(genes_interes_down, "Lista de genes Downregulated")
 ```
 
 ### Obtención de resultados
@@ -520,8 +537,8 @@ run_enrichr <- function(userListId, gene_set_library, output_dir = "../results/f
 ```{r}
 gene_libraries <- c("GO_Biological_Process_2018", "GO_Cellular_Component_2018", "GO_Molecular_Function_2018", "KEGG_2018")
 
-results <- lapply(gene_libraries, function(lib) {
-  run_enrichr(userListId, lib)
+results_up <- lapply(gene_libraries, function(lib) {
+  run_enrichr(resultado_up$userListId, lib, "../results/functional_enrichment/up_regulated")
 })
 ```
 
@@ -550,17 +567,19 @@ load_enrichment <- function(lib_name, base_dir = "../results/functional_enrichme
 plot_barplot <- function(enrich_df, lib_name) {
   lib_name_clean <- str_replace_all(lib_name, "_", " ")
   title_text <- paste("Top términos enriquecidos\n", lib_name_clean)
+  
+  my_colors <- nord::nord_palettes$afternoon_prarie
+  my_colors <- nord("aurora", 20)
 
-
-
-  ggplot(enrich_df, aes(x = Term_wrapped, y = `Combined Score`)) +
-    geom_col(fill = "steelblue", width = 0.7) +
+  ggplot(enrich_df, aes(x = Term_wrapped, y = `Combined Score`, fill= as.factor(`Combined Score`))) +
+    geom_col(width = 0.7) +
     coord_flip() +
     labs(
       title = title_text,
       x = "Término GO",
       y = "Combined Score"
     ) +
+    scale_fill_manual(values = my_colors) +
     theme_minimal(base_size = 12) +
     theme(
       axis.text.y = element_text(size = 8, margin = margin(r = 10)),
@@ -569,8 +588,9 @@ plot_barplot <- function(enrich_df, lib_name) {
         size = 14,
         margin = margin(t = 20, b = 10),
         hjust = 0.6  # Ajustá este valor entre 0.5 y 0.7 según convenga
-      )
-    )
+      ),
+      legend.position="none"
+    ) 
 }
 
 # Función para hacer dotplot
@@ -607,7 +627,7 @@ plot_dotplot <- function(enrich_df, lib_name) {
 #| fig-cap: "Barplot of Biological processes from GO 2018 enriched"
 
 library_name <- "GO_Biological_Process_2018"
-enrich_df <- load_enrichment(library_name)
+enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/up_regulated")
 
 barplot <- plot_barplot(enrich_df, library_name)
 dotplot <- plot_dotplot(enrich_df, library_name)
@@ -629,7 +649,7 @@ print(dotplot)
 #| label: fig-barplot-go-cellular-component
 #| fig-cap: "Barplot of Cellular component from GO 2018 enriched"
 library_name <- "GO_Cellular_Component_2018"
-enrich_df <- load_enrichment(library_name)
+enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/up_regulated")
 
 barplot <- plot_barplot(enrich_df, library_name)
 dotplot <- plot_dotplot(enrich_df, library_name)
@@ -651,7 +671,7 @@ print(dotplot)
 #| fig-cap: "Barplot of Molecular function from GO 2018 enriched"
 
 library_name <- "GO_Molecular_Function_2018"
-enrich_df <- load_enrichment(library_name)
+enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/up_regulated")
 
 barplot <- plot_barplot(enrich_df, library_name)
 dotplot <- plot_dotplot(enrich_df, library_name)
@@ -670,7 +690,7 @@ print(dotplot)
 #| label: fig-barplot-kegg
 #| fig-cap: "Barplot de rutas metabólicas en KEGG"
 library_name <- "KEGG_2018"
-enrich_df <- load_enrichment(library_name)
+enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/up_regulated")
 
 barplot <- plot_barplot(enrich_df, library_name)
 dotplot <- plot_dotplot(enrich_df, library_name)
@@ -684,3 +704,95 @@ print(barplot)
 print(dotplot)
 ```
 
+### Downregulated
+
+```{r}
+results_down <- lapply(gene_libraries, function(lib) {
+  run_enrichr(resultado_down$userListId, lib, "../results/functional_enrichment/down_regulated")
+})
+```
+
+
+#### GO Biological Process 2018
+
+```{r}
+#| label: fig-barplot-go-biological-process
+#| fig-cap: "Barplot of Biological processes from GO 2018 enriched"
+
+library_name <- "GO_Biological_Process_2018"
+enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/down_regulated")
+
+barplot <- plot_barplot(enrich_df, library_name)
+dotplot <- plot_dotplot(enrich_df, library_name)
+
+print(barplot)
+```
+
+
+```{r}
+#| label: fig-dotplot-go-biological-process
+#| fig-cap: "Dotplot of Biological processes from GO 2018 enriched"
+print(dotplot)
+```
+
+
+#### GO Cellular Component 2018
+
+```{r}
+#| label: fig-barplot-go-cellular-component
+#| fig-cap: "Barplot of Cellular component from GO 2018 enriched"
+library_name <- "GO_Cellular_Component_2018"
+enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/down_regulated")
+
+barplot <- plot_barplot(enrich_df, library_name)
+dotplot <- plot_dotplot(enrich_df, library_name)
+
+print(barplot)
+```
+
+
+```{r}
+#| label: fig-dotplot-go-cellular-component
+#| fig-cap: Dotplot of Cellular component from GO 2018 enriched
+print(dotplot)
+```
+
+#### GO Molecular Function 2018
+
+```{r}
+#| label: fig-barplot-go-molecular-function
+#| fig-cap: "Barplot of Molecular function from GO 2018 enriched"
+
+library_name <- "GO_Molecular_Function_2018"
+enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/down_regulated")
+
+barplot <- plot_barplot(enrich_df, library_name)
+dotplot <- plot_dotplot(enrich_df, library_name)
+
+print(barplot)
+```
+```{r}
+#| label: fig-dotplot-go-molecular-function
+#| fig-cap: "Dotplot of Molecular function from GO 2018 enriched"
+print(dotplot)
+```
+
+#### KEGG pathways
+
+```{r}
+#| label: fig-barplot-kegg
+#| fig-cap: "Barplot de rutas metabólicas en KEGG"
+library_name <- "KEGG_2018"
+enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/down_regulated")
+
+barplot <- plot_barplot(enrich_df, library_name)
+dotplot <- plot_dotplot(enrich_df, library_name)
+
+print(barplot)
+```
+
+```{r}
+#| label: fig-dotplot-kegg
+#| fig-cap: "Dotplot de rutas metabólicas en KEGG"
+print(dotplot)
+```
