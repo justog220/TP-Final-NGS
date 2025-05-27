@@ -12,7 +12,7 @@ rule make_star_index:
         genomeDir="results/mapping/index_STAR",
         genomeFastaFiles=input.genome_reference,
         sjdbGTFfile=input.gtf_reference,
-        sjdbOverhang=24, #TODO: lo deje como 24 porque el largo es de 25, quizás podría determinarse de forma dinámica.
+        sjdbOverhang=100,
         genomeSAindexNbases=lambda wildcards, input: min(14, math.log2(sum(len(record) for record in Bio.SeqIO.parse(input.genome_reference, "fasta")))/2 - 1),
         outFileNamePrefix="sacCer_chr1",
     threads: 4
