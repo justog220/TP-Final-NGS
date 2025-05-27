@@ -146,7 +146,6 @@ rule generate_igv_report:
         import shutil
         import base64
 
-        # 1. Generar configuración JSON
         config = {
             "genome": {
                 "id": "yeast_custom",
@@ -171,14 +170,11 @@ rule generate_igv_report:
             ]
         }
 
-        # 2. Guardar configuración como JS
         with open(output.config, 'w') as f:
             f.write(f"const igvConfig = {json.dumps(config, indent=2)};")
 
-        # 3. Copiar plantilla base y modificar
         shutil.copy2(input.template_base, output.html)
 
-        # 4. Inyectar configuración directamente en el HTML
         with open(output.html, 'a') as f_html:
             with open(output.config, 'r') as f_config:
                 f_html.write(f"\n<script>\n{f_config.read()}\n</script>")
