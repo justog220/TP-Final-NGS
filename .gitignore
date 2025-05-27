@@ -7,3 +7,5 @@ results/*
 notebooks/*txt
 
 notebooks/differential_expression_files/*
+
+_STARtmp/*
