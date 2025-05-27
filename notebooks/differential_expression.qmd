@@ -3,8 +3,9 @@ title: "Análisis de expresión diferencial - Levadura"
 output: html_document
 author: Garcia Just
 date: onsave
-html:
-  toc: true
+format:
+  html:
+    toc: true
 ---
 
 ```{r}
@@ -183,6 +184,7 @@ write.table(norm_counts_symbols, "normalized_counts_log2_star.txt", quote=F, col
 
 # Análisis de expresión diferencial2
 ```{r}
+#| code-fold: true
 #----Análisis de expresión diferencial----
 
 #Chequeo de nombre de resultados: depende de qué se haya modelado. Aquí se modeló la "Condition"
@@ -260,6 +262,7 @@ pheatmap(sampleDistMatrix,
 ## PCA
 
 ```{r}
+#| code-fold: true
 # ---- Visualización - PCA personalizado sin líneas en etiquetas ----
 
 # Obtener datos de PCA con DESeq2
@@ -267,7 +270,13 @@ pcaData <- plotPCA(se_rlog, intgroup = "Condition", returnData = TRUE)
 
 # Calcular porcentaje de varianza explicada
 percentVar <- round(100 * attr(pcaData, "percentVar"))
+```
 
+
+```{r}
+#| code-fold: true
+#| label: fig-pca-deseq
+#| fig-cap: "PCA para los datos de DESeq2 diferenciando por condición" 
 # Graficar
 ggplot(pcaData, aes(x = PC1, y = PC2, color = Condition, label = name)) +
   geom_point(size = 4, alpha = 0.85) +
@@ -287,6 +296,8 @@ ggplot(pcaData, aes(x = PC1, y = PC2, color = Condition, label = name)) +
   )
 
 ```
+
+Como se puede observar en la @fig-pca-deseq, los grupos se encuentran bien diferenciados en las dos condiciones en el eje de la compone. Por otro lado, en el eje de PC2 la varianza es muy baja. 
 
 ## Volcano Plot
 
@@ -456,36 +467,220 @@ shortID <- parsed_result$shortId
 
 ### Obtención de resultados
 
+En este caso se corre el enriquecimiento con YeastEnrichr. Se define la función en R para poder correrlo pasando como argumento, el token de la lista de genes que obtuvimos en el paso anterior y el tipo de set de datos contra el que queremos que se contraste. Las bibliotecas disponibles pueden consultarse en (YeastEnrichr)[https://maayanlab.cloud/YeastEnrichr/#stats]. En este caso, se enriqueció para:
+
+- GO_Biological_Process_2018
+- GO_Cellular_Component_2018
+- GO_Molecular_Function_2018
+- KEGG_2018
+
+Se seleccionaron estas librerías porque son recursos de Gene Ontology o KEGG con una versión bien establecida, otorgando reproducibilidad. 
+
 ```{r}
-# ---- Paso 2: Obtener resultados ----
+library(httr)
+library(readr)
 
-ENRICHR_ENRICH_URL <- "http://maayanlab.cloud/YeastEnrichr/enrich"
-gene_set_library <- "GO_Biological_Process_2018"  # Cambiar por otras si querés
-
-query_url <- paste0(ENRICHR_ENRICH_URL, "?userListId=", userListId,
-                    "&backgroundType=", gene_set_library)
-
-res <- GET(query_url)
-if (http_error(res)) stop("❌ Error al obtener los resultados de enriquecimiento")
-
-data <- content(res, as = "parsed")[[gene_set_library]]
+# Función general para correr enriquecimiento y guardar resultados a un `tsv`
+run_enrichr <- function(userListId, gene_set_library, output_dir = "../results/functional_enrichment") {
+  ENRICHR_ENRICH_URL <- "http://maayanlab.cloud/YeastEnrichr/enrich"
+  
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive=TRUE)
+  }
+  
+  query_url <- paste0(ENRICHR_ENRICH_URL, "?userListId=", userListId,
+                      "&backgroundType=", gene_set_library)
+  
+  res <- GET(query_url)
+  if (http_error(res)) stop("❌ Error al obtener los resultados de enriquecimiento para ", gene_set_library)
+  
+  data <- content(res, as = "parsed")[[gene_set_library]]
+  
+  if (length(data) == 0) {
+    warning("⚠️ No se obtuvieron resultados para ", gene_set_library)
+    return(NULL)
+  }
+  
+  data_flat <- lapply(data, function(x) {
+    x[[6]] <- paste(unlist(x[[6]]), collapse = ", ")
+    unlist(x)
+  })
+  
+  enrichment_df <- as.data.frame(do.call(rbind, data_flat), stringsAsFactors = FALSE)
+  colnames(enrichment_df) <- c("Rank", "Term", "P-value", "Z-score", "Combined Score", 
+                               "Overlapping Genes", "Adjusted P-value", "Old P", "Old Adj P")
+  
+  output_file <- file.path(output_dir, paste0("enrichment_", gene_set_library, ".tsv"))
+  write_tsv(enrichment_df, output_file)
+  
+  return(enrichment_df)
+}
 ```
 
+```{r}
+gene_libraries <- c("GO_Biological_Process_2018", "GO_Cellular_Component_2018", "GO_Molecular_Function_2018", "KEGG_2018")
+
+results <- lapply(gene_libraries, function(lib) {
+  run_enrichr(userListId, lib)
+})
 ```
-# ---- Paso 3: Procesar y guardar tabla ----
 
-# Convertimos a data frame
-colnames <- c("Rank", "Term", "P-value", "Z-score", "Combined Score", 
-              "Overlapping Genes", "Adjusted P-value", "Old P", "Old Adj P")
+### Análisis de resultados
 
-enrichment_df <- as.data.frame(do.call(rbind, data), stringsAsFactors = FALSE)
-colnames(enrichment_df) <- colnames
+En primer lugar, defino funciones básicas que me permitan generalizar la carga de los datos, transformación y la generación de gráficos para las distintas librerías.
 
-# Guardar como .tsv
-output_file <- paste0("enrichment_", gene_set_library, ".tsv")
-write_tsv(enrichment_df, output_file)
+```{r}
+# Función para cargar y preprocesar el archivo de enriquecimiento
+load_enrichment <- function(lib_name, base_dir = "../results/functional_enrichment", top_n = 15, wrap_width = 60) {
+  filepath <- file.path(base_dir, paste0("enrichment_", lib_name, ".tsv"))
+  df <- read_tsv(filepath, show_col_types = FALSE) %>%
+    mutate(
+      `Adjusted P-value` = as.numeric(`Adjusted P-value`),
+      `Combined Score` = as.numeric(`Combined Score`),
+      `Overlapping Genes` = str_count(`Overlapping Genes`, ",") + 1,
+      Term_wrapped = str_wrap(Term, width = wrap_width)
+    ) %>%
+    arrange(`Adjusted P-value`) %>%
+    slice_head(n = top_n) %>%
+    mutate(Term_wrapped = fct_reorder(Term_wrapped, `Combined Score`))
+  return(df)
+}
 
-cat("✅ Resultados guardados en:", output_file, "\n")
+# Función para hacer barplot
+plot_barplot <- function(enrich_df, lib_name) {
+  lib_name_clean <- str_replace_all(lib_name, "_", " ")
+  title_text <- paste("Top términos enriquecidos\n", lib_name_clean)
 
+
+
+  ggplot(enrich_df, aes(x = Term_wrapped, y = `Combined Score`)) +
+    geom_col(fill = "steelblue", width = 0.7) +
+    coord_flip() +
+    labs(
+      title = title_text,
+      x = "Término GO",
+      y = "Combined Score"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      axis.text.y = element_text(size = 8, margin = margin(r = 10)),
+      axis.ticks.y = element_blank(),
+      plot.title = element_text(
+        size = 14,
+        margin = margin(t = 20, b = 10),
+        hjust = 0.6  # Ajustá este valor entre 0.5 y 0.7 según convenga
+      )
+    )
+}
+
+# Función para hacer dotplot
+plot_dotplot <- function(enrich_df, lib_name) {
+  lib_name_clean <- str_replace_all(lib_name, "_", " ")
+  title_text <- paste("Top términos enriquecidos\n", lib_name_clean)
+  
+  enrich_df <- enrich_df %>%
+    mutate(`Adjusted P-value` = ifelse(`Adjusted P-value` == 0, 1e-300, `Adjusted P-value`))
+  
+  ggplot(enrich_df, aes(x = `Combined Score`, y = Term_wrapped)) +
+    geom_point(aes(color = `Adjusted P-value`, size = `Overlapping Genes`)) +
+    scale_color_gradient(trans = "log10", low = "red", high = "blue", 
+                         name = "Adjusted P-value") +
+    scale_size_continuous(range = c(2, 8), name = "Cantidad genes") +
+    labs(
+      title = title_text
+      ,
+      x = "Combined Score",
+      y = "Término GO"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      axis.text.y = element_text(size = 8, margin = margin(r = 10)),
+      axis.ticks.y = element_blank()
+    )
+}
+```
+
+#### GO Biological Process 2018
+
+```{r}
+#| label: fig-barplot-go-biological-process
+#| fig-cap: "Barplot of Biological processes from GO 2018 enriched"
+
+library_name <- "GO_Biological_Process_2018"
+enrich_df <- load_enrichment(library_name)
+
+barplot <- plot_barplot(enrich_df, library_name)
+dotplot <- plot_dotplot(enrich_df, library_name)
+
+print(barplot)
+```
+
+
+```{r}
+#| label: fig-dotplot-go-biological-process
+#| fig-cap: "Dotplot of Biological processes from GO 2018 enriched"
+print(dotplot)
+```
+
+
+#### GO Cellular Component 2018
+
+```{r}
+#| label: fig-barplot-go-cellular-component
+#| fig-cap: "Barplot of Cellular component from GO 2018 enriched"
+library_name <- "GO_Cellular_Component_2018"
+enrich_df <- load_enrichment(library_name)
+
+barplot <- plot_barplot(enrich_df, library_name)
+dotplot <- plot_dotplot(enrich_df, library_name)
+
+print(barplot)
+```
+
+
+```{r}
+#| label: fig-dotplot-go-cellular-component
+#| fig-cap: Dotplot of Cellular component from GO 2018 enriched
+print(dotplot)
+```
+
+#### GO Molecular Function 2018
+
+```{r}
+#| label: fig-barplot-go-molecular-function
+#| fig-cap: "Barplot of Molecular function from GO 2018 enriched"
+
+library_name <- "GO_Molecular_Function_2018"
+enrich_df <- load_enrichment(library_name)
+
+barplot <- plot_barplot(enrich_df, library_name)
+dotplot <- plot_dotplot(enrich_df, library_name)
+
+print(barplot)
+```
+```{r}
+#| label: fig-dotplot-go-molecular-function
+#| fig-cap: "Dotplot of Molecular function from GO 2018 enriched"
+print(dotplot)
+```
+
+#### KEGG pathways
+
+```{r}
+#| label: fig-barplot-kegg
+#| fig-cap: "Barplot de rutas metabólicas en KEGG"
+library_name <- "KEGG_2018"
+enrich_df <- load_enrichment(library_name)
+
+barplot <- plot_barplot(enrich_df, library_name)
+dotplot <- plot_dotplot(enrich_df, library_name)
+
+print(barplot)
+```
+
+```{r}
+#| label: fig-dotplot-kegg
+#| fig-cap: "Dotplot de rutas metabólicas en KEGG"
+print(dotplot)
 ```
 
