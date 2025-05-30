@@ -1,9 +1,9 @@
 # Análisis de Expresión Génica en *Saccharomyces cerevisiae* bajo Diferentes Condiciones de Crecimiento
 
-**Autor:** Justo Garcia  
-**Seminario:** Análisis de Secuencias de Nuevas Tecnologías de Secuenciación en Paralelo  
-**Docente:** Ileana Tossolini  
-**Carrera:** Licenciatura en Bioinformática - Facultad de Ingeniería, Universidad Nacional de Entre Ríos  
+**Autor:** Justo Garcia
+**Seminario:** Análisis de Secuencias de Nuevas Tecnologías de Secuenciación en Paralelo
+**Docente:** Ileana Tossolini
+**Carrera:** Licenciatura en Bioinformática - Facultad de Ingeniería, Universidad Nacional de Entre Ríos
 
 ## 🎯 Objetivo
 
@@ -18,11 +18,47 @@ Se busca identificar genes diferencialmente expresados y realizar análisis func
 - Snakemake – para orquestar el pipeline.
 - Conda – para gestión de entornos y dependencias.
 - R / RMarkdown – para análisis de expresión diferencial y generación de reportes.
+- Quarto – para generar reportes HTML interactivos. Apartir de RMd
 
 ## 🗂️ Estructura del proyecto
 
-⚠️ TODO: Completar una vez definida la estructura del directorio.
-
+```plaintext
+[4.0K]  ./
+├── [4.0K]  data/ # Directorio de datos
+│   ├── [4.0K]  reads/ # Lecturas de secuenciación
+│   │   ├── [9.3M]  batch1_1.fastq
+│   │   ├── [8.6M]  batch1_2.fastq
+│   │   ├── [ 13M]  batch2_1.fastq
+│   │   ├── [ 12M]  batch2_2.fastq
+│   │   ├── [9.9M]  batch3_1.fastq
+│   │   ├── [9.1M]  batch3_2.fastq
+│   │   ├── [8.1M]  quimiostato1_1.fastq
+│   │   ├── [7.6M]  quimiostato1_2.fastq
+│   │   ├── [9.9M]  quimiostato2_1.fastq
+│   │   ├── [9.4M]  quimiostato2_2.fastq
+│   │   ├── [ 12M]  quimiostato3_1.fastq
+│   │   └── [ 11M]  quimiostato3_2.fastq
+│   ├── [4.0K]  reference/ # Genoma de referencia y anotaciones
+│   │   ├── [229K]  sacCer_ChrI.fa
+│   │   ├── [  20]  sacCer_ChrI.fa.fai
+│   │   └── [5.1M]  sacCer_genes.gtf
+│   └── [4.0K]  templates/ # Plantillas para el reporte de IGV
+│       ├── [ 507]  igv_base.html
+│       └── [  66]  igv_config.js
+├── [4.0K]  notebooks/ # Notebooks de análisis de expresión diferencial
+│   ├── [4.0K]  differential_expression_files/
+│   ├── [209K]  differential_expression.html # Reporte HTML del análisis
+│   ├── [ 24K]  differential_expression.qmd # Archivo Quarto para el análisis
+│   └── [1.8M]  graphics_generation.ipynb # Generación de gráficos para el artículo
+├── [4.0K]  results/ # Resultados del pipeline
+├── [4.0K]  rules/ # Reglas de Snakemake
+│   ├── [7.3K]  alignment_with_genome.smk # Reglas relativas al mapeo y su exploración
+│   └── [ 592]  quality_control.smk # Reglas para el control de calidad
+├── [196K]  Consigna Levadura.pdf # Consigna del trabajo práctico
+├── [ 279]  environment.yml # Archivo de entorno de Conda
+├── [2.6K]  README.md # Este archivo
+└── [1.6K]  Snakefile # Archivo principal de Snakemake
+```
 
 
 ## 🚀 Cómo ejecutar el análisis
@@ -30,7 +66,7 @@ Se busca identificar genes diferencialmente expresados y realizar análisis func
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/justog220/TP-Final-NGS.git  
+git clone https://github.com/justog220/TP-Final-NGS.git
 cd TP-Final-NGS
 ```
 
