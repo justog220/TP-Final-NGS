@@ -25,7 +25,7 @@ BiocManager::install("rtracklayer")
 #| code-fold: true
 #| output: false
 library(DESeq2)
-library(biomaRt)
+# library(biomaRt)
 library(tidyverse)
 library(ggplot2)
 library(reshape2)
@@ -358,6 +358,8 @@ plotly_volcano <- de_clean %>%
 plotly_volcano
 ```
 
+
+
 ```{r}
 gg_volcano <- ggplot(de_clean, aes(x = log2FoldChange, y = -log10(pvalue), color = diffexpressed, label = delabel)) +
   geom_point(alpha = 0.6, size = 2) +
@@ -383,6 +385,38 @@ gg_volcano <- ggplot(de_clean, aes(x = log2FoldChange, y = -log10(pvalue), color
 
 print(gg_volcano)
 ```
+
+## Volcano plot para genes que no codifican proteínas
+
+```{r}
+de_clean_no_p <- de_clean %>% 
+  filter(is.na(p_id))
+
+gg_volcano <- ggplot(de_clean_no_p, aes(x = log2FoldChange, y = -log10(pvalue), color = diffexpressed, label = delabel)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_text_repel(segment.color = "grey50", max.overlaps = 20, size = 3.5) +
+  scale_color_manual(values = c("DOWN" = "blue", "NO" = "black", "UP" = "red")) +
+  geom_vline(xintercept = c(-0.5, 0.5), color = "red", linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05), color = "red", linetype = "dashed") +
+  labs(
+    title = "Volcano Plot",
+    subtitle = "log2 Fold Change vs -log10(p-value)",
+    x = "log2FoldChange",
+    y = "-log10(p-value)",
+    color = "Expresión"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "bottom",
+    # plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1)
+  )
+
+print(gg_volcano)
+```
+
 
 # Análisis funcional con YeastEnrichr
 
