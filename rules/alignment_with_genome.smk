@@ -24,7 +24,7 @@ rule make_star_index:
                     --sjdbOverhang {params.sjdbOverhang} \
                     --genomeSAindexNbases {params.genomeSAindexNbases} \
                     --outFileNamePrefix {params.outFileNamePrefix} \
-                     --runThreadN {threads}
+                    --runThreadN {threads}
         """
 
 rule align_STAR:
@@ -43,11 +43,11 @@ rule align_STAR:
     shell:
         """
         STAR --genomeDir {params.genomeDir} \
-             --readFilesIn {input.fastq_1},{input.fastq_2} \
-             --outSAMtype BAM SortedByCoordinate \
-             --quantMode GeneCounts \
-             --outFileNamePrefix {params.prefix} \
-             --runThreadN {threads}
+            --readFilesIn {input.fastq_1},{input.fastq_2} \
+            --outSAMtype BAM SortedByCoordinate \
+            --quantMode GeneCounts \
+            --outFileNamePrefix {params.prefix} \
+            --runThreadN {threads}
         """
 
 rule quality_control_mapping:
@@ -122,8 +122,8 @@ rule generate_igv_tracks:
             tracks_config["tracks"].append({
                 "name": replic,
                 "bw": f"results/mapping/alignments_STAR/{replic}/{replic}Coverage.bw",
-                "bam": f"results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam",
-                "bai": f"results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam.bai"
+                # "bam": f"results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam",
+                # "bai": f"results/mapping/alignments_STAR/{replic}/{replic}Aligned.sortedByCoord.out.bam.bai"
             })
 
         with open(output[0], 'w') as f:
