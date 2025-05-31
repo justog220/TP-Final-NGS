@@ -1,11 +1,16 @@
 ---
 title: "Análisis de expresión diferencial - Levadura"
 output: html_document
-author: Garcia Just
+author: Garcia Justo
 date: onsave
 format:
   html:
     toc: true
+    embed-resources: true
+    code-links:
+      - text: Repo de GitHub
+        icon: github
+        href: https://github.com/justog220/TP-Final-NGS
 ---
 
 ```{r}
@@ -750,7 +755,7 @@ results_down <- lapply(gene_libraries, function(lib) {
 #### GO Biological Process 2018
 
 ```{r}
-#| label: fig-barplot-go-biological-process
+#| label: fig-barplot-go-biological-process-down
 #| fig-cap: "Barplot of Biological processes from GO 2018 enriched"
 
 library_name <- "GO_Biological_Process_2018"
@@ -764,7 +769,7 @@ print(barplot)
 
 
 ```{r}
-#| label: fig-dotplot-go-biological-process
+#| label: fig-dotplot-go-biological-process-down
 #| fig-cap: "Dotplot of Biological processes from GO 2018 enriched"
 print(dotplot)
 ```
@@ -773,7 +778,7 @@ print(dotplot)
 #### GO Cellular Component 2018
 
 ```{r}
-#| label: fig-barplot-go-cellular-component
+#| label: fig-barplot-go-cellular-component-down
 #| fig-cap: "Barplot of Cellular component from GO 2018 enriched"
 library_name <- "GO_Cellular_Component_2018"
 enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/down_regulated")
@@ -786,7 +791,7 @@ print(barplot)
 
 
 ```{r}
-#| label: fig-dotplot-go-cellular-component
+#| label: fig-dotplot-go-cellular-component-down
 #| fig-cap: Dotplot of Cellular component from GO 2018 enriched
 print(dotplot)
 ```
@@ -794,7 +799,7 @@ print(dotplot)
 #### GO Molecular Function 2018
 
 ```{r}
-#| label: fig-barplot-go-molecular-function
+#| label: fig-barplot-go-molecular-function-down
 #| fig-cap: "Barplot of Molecular function from GO 2018 enriched"
 
 library_name <- "GO_Molecular_Function_2018"
@@ -806,7 +811,7 @@ dotplot <- plot_dotplot(enrich_df, library_name)
 print(barplot)
 ```
 ```{r}
-#| label: fig-dotplot-go-molecular-function
+#| label: fig-dotplot-go-molecular-function-down
 #| fig-cap: "Dotplot of Molecular function from GO 2018 enriched"
 print(dotplot)
 ```
@@ -814,7 +819,7 @@ print(dotplot)
 #### KEGG pathways
 
 ```{r}
-#| label: fig-barplot-kegg
+#| label: fig-barplot-kegg-down
 #| fig-cap: "Barplot de rutas metabólicas en KEGG"
 library_name <- "KEGG_2018"
 enrich_df <- load_enrichment(library_name, base_dir = "../results/functional_enrichment/down_regulated")
@@ -826,7 +831,44 @@ print(barplot)
 ```
 
 ```{r}
-#| label: fig-dotplot-kegg
+#| label: fig-dotplot-kegg-down
 #| fig-cap: "Dotplot de rutas metabólicas en KEGG"
 print(dotplot)
 ```
+
+## Enriquecimiento funcional extendido
+
+Como se aclaró previamente, los datos con los que se ha trabajado hasta el momento son correspondientes a lecturas que alinean con el primer cromosoma. Por ello, se llevó a cabo un enriquecimiento funcional de una lista de genes diferencialmente expresados provista por la cátedra. A diferencia del análisis anterior, aquí no se cuenta con información sobre si están downregulados o upregulados los genes.
+
+Se utilizó la misma metodología de llamados a la api de YeastEnrichr.
+
+```{r}
+genes_extendidos = readLines('../data/genes_diff_exp/Genes_diferencialmente_expresados_signif.tabular')
+
+resultado_extendido <- enviar_a_enrichr(genes_extendidos, "Lista de genes extendida")
+
+results_up <- lapply(gene_libraries, function(lib) {
+  run_enrichr(resultado_extendido$userListId, lib, "../results/functional_enrichment/extended_analysis")
+})
+```
+
+```{r}
+ruta <- "../results/functional_enrichment/extended_analysis"
+
+# Leer los nombres de los archivos TSV
+archivos <- list.files(path = ruta, pattern = "\\.tsv$", full.names = TRUE)
+
+# Leer y graficar
+for (librarie in gene_libraries) {
+  enrichment_df <- load_enrichment(librarie, base_dir="../results/functional_enrichment/extended_analysis")
+  
+  enrichment_df <- head(enrichment_df, 5)
+
+  # Hacer el gráfico
+  p <- plot_barplot(enrichment_df, librarie)
+  
+  print(p)
+}
+
+```
+
