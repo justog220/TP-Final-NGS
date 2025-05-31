@@ -5,7 +5,7 @@ def get_samples():
     return [f.replace(".fastq", "") for f in os.listdir("data/reads") if f.endswith(".fastq")]
 
 def get_replics():
-    return [sample.split("_")[0] for sample in get_samples()]
+    return set([sample.split("_")[0] for sample in get_samples()])
 
 def get_paired_samples():
     samples = sorted(get_samples())
