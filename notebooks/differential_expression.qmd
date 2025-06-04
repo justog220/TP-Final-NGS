@@ -2,7 +2,7 @@
 title: "Análisis de expresión diferencial - Levadura"
 output: html_document
 author: Garcia Justo
-date: onsave
+date: 2025-06-02
 format:
   html:
     toc: true
@@ -30,7 +30,7 @@ BiocManager::install("rtracklayer")
 #| code-fold: true
 #| output: false
 library(DESeq2)
-# library(biomaRt)
+library(biomaRt)
 library(tidyverse)
 library(ggplot2)
 library(reshape2)
@@ -40,9 +40,14 @@ library(rtracklayer)
 library(plotly)
 library(dplyr)
 library(nord)
+library(httr)
+library(jsonlite)
+library(readr)
 ```
 
 # Preparando datos de alineamiento con [STAR](https://github.com/alexdobin/STAR)
+
+En primer lugar se toman los archivos de ReadsPerGene que genera STAR y se convierten a un archivo de conteos más simple para luego cargarlos a R cuando se lo requiera.
 
 ```{r}
 #| output: false
@@ -72,6 +77,15 @@ for (archivo in files) {
 ```
 
 # Preparando tabla de muestras
+
+Se prepara la tabla de muestras de DESeq2, con tres columnas:
+
+-   Nombre de muestras (SampleName): El nombre de cada muestra (batch1, 2 y 3, etc.)
+
+-   Nombre de Archivo (FileName): El archivo de counts que se guardó en el paso anterior para cada muestra.
+
+-   Condition: Es la condición metabólica de cada muestra. Es importante definirla para el análisis de expresión diferencial posterior.
+
 ```{r}
 sampletable <- data.frame(
   SampleName = c("batch1", "batch2", "batch3", 
@@ -85,6 +99,9 @@ rownames(sampletable) <- gsub("_counts.txt", "", sampletable$FileName)
 ```
 
 # Importación recuentos STAR
+
+Ahora sí, se importan los archivos de recuentos que se crearon antes y se construye la tabla de DESeq2, con el método `DESeqDataSetFromHTSeqCount`. Se establece que el diseño es por la condición que definimos en la tabla anterior.
+
 ```{r}
 setwd("../results/differential_expression")
 
@@ -106,12 +123,15 @@ genes_before <- nrow(se_star)
 se_star_before <- se_star
 
 ```
+
 ```{r}
 se_star <- se_star[rowSums(counts(se_star)) > 10, ]
 ```
 
 ```{r}
 #| code-fold: true
+#| label: fig-filtrado
+#| fig-cap: "Número de genes presentes antes y despúes del filtrado." 
 genes_after <- nrow(se_star)
 
 df <- data.frame(
@@ -124,12 +144,16 @@ ggplot(df, aes(x=Etapa, y=Genes, fill=Etapa)) +
   geom_text(aes(label=Genes), vjust=-0.5, size=5) +
   theme_minimal() +
   labs(title="Número de genes antes y después del filtrado", y="Cantidad de genes") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  ylim(0, max(df$Genes) * 1.1)
 ```
+
+Como se puede ver en @fig-filtrado se pasa de 127 genes a 100.
 
 # Importación de anotación
 
-En este caso, se trabajo con un archivo GTF (`../data/reference/sacCer_genes.gtf`))brindado por la catedra, específico para esta cepa.
+En este caso, se trabajo con un archivo GTF (`../data/reference/sacCer_genes.gtf`) brindado por la catedra, específico para esta cepa.
+
 ```{r}
 # ---- Preparar anotación con archivo GTF ----
 
@@ -166,7 +190,7 @@ Para el análisis de la expresión diferencial se va a usar DESeq2, por ello se 
 Se calcula el conteo normalizado de los datos, con una transformación log2 + 1 y finalmente se agrega la anotación que se cargo desde el GTF.
 
 Estos datos son en suma almacenados en `normalized_counts_log2_star.txt`
-}
+
 ```{r}
 #---- Ajustar modelo estadístico DESeq2----
 
@@ -188,7 +212,10 @@ norm_counts_symbols <- merge(data.frame(ID=rownames(norm_counts),
 write.table(norm_counts_symbols, "normalized_counts_log2_star.txt", quote=F, col.names=T, row.names=F, sep="\t")
 ```
 
-# Análisis de expresión diferencial2
+# Análisis de expresión diferencial
+
+Se extraen los resultados de la expresión diferencial con el contraste **Batch vs Condition.**
+
 ```{r}
 #| code-fold: true
 #----Análisis de expresión diferencial----
@@ -219,10 +246,14 @@ write.table(de_symbols,
             sep="\t")
 ```
 
+Se seleccionan los genes diferencialmente expresados con el criterio:
+
+-   $p_adj < 0.05$
+
+-   $|log_2(FoldChange)| > 0.5$
+
 ```{r}
 #----Selección de genes----
-
-
 de_select <- de_symbols[de_symbols$padj < 0.05 & !is.na(de_symbols$padj) & abs(de_symbols$log2FoldChange) > 0.5,]
 
 write.table(de_select,
@@ -244,6 +275,8 @@ se_rlog <- rlog(se_star2)
 ## Correlación de muestras
 
 ```{r}
+#| label: fig-correlacion
+#| fig-cap: "Matriz de distancia para las 6 muestras." 
 #---- Visualización - Correlación de muestras----
 
 #Calcular la matriz de distancia entre muestras
@@ -251,8 +284,6 @@ sampleDistMatrix <- as.matrix(dist(t(assay(se_rlog))))
 #Preparar metadata
 metadata <- data.frame(Condition = sampletable$Condition)
 rownames(metadata) <- sampletable$SampleName
-#Gráfico
-#pheatmap(sampleDistMatrix, annotation_col=metadata)
 
 pheatmap(sampleDistMatrix,
          annotation_col = metadata,
@@ -264,6 +295,8 @@ pheatmap(sampleDistMatrix,
          color = colorRampPalette(rev(RColorBrewer::brewer.pal(n = 9, name = "RdBu")))(100),
          angle_col = "45")
 ```
+
+Como se puede ver en @fig-correlacion, las muestras se agrupan correctamente según su condición, en la jerarquía también se pueden ver correctamente diferenciadas.
 
 ## PCA
 
@@ -277,7 +310,6 @@ pcaData <- plotPCA(se_rlog, intgroup = "Condition", returnData = TRUE)
 # Calcular porcentaje de varianza explicada
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 ```
-
 
 ```{r}
 #| code-fold: true
@@ -303,11 +335,13 @@ ggplot(pcaData, aes(x = PC1, y = PC2, color = Condition, label = name)) +
 
 ```
 
-Como se puede observar en la @fig-pca-deseq, los grupos se encuentran bien diferenciados en las dos condiciones en el eje de la compone. Por otro lado, en el eje de PC2 la varianza es muy baja. 
+Como se puede observar en la @fig-pca-deseq, los grupos se encuentran bien diferenciados en las dos condiciones en el eje de la primer componente principal. Por otro lado, en el eje de PC2 la varianza es muy baja.
 
 ## Volcano Plot
 
 ```{r}
+#| label: fig-volcano-plot-plotly
+#| fig-cap: "Volcano plot para los genes diferencialmente expresados con el tratamiento Batch vs. Quimiostato"
 # Buscar el mínimo pvalue positivo (no cero)
 min_nonzero_p <- min(de_symbols$pvalue[de_symbols$pvalue > 0], na.rm = TRUE)
 
@@ -363,9 +397,9 @@ plotly_volcano <- de_clean %>%
 plotly_volcano
 ```
 
-
-
 ```{r}
+#| label: fig-volcano-plot
+#| fig-cap: "Volcano plot para los genes diferencialmente expresados con el tratamiento Batch vs. Quimiostato"
 gg_volcano <- ggplot(de_clean, aes(x = log2FoldChange, y = -log10(pvalue), color = diffexpressed, label = delabel)) +
   geom_point(alpha = 0.6, size = 2) +
   geom_text_repel(segment.color = "grey50", max.overlaps = 20, size = 3.5) +
@@ -391,9 +425,13 @@ gg_volcano <- ggplot(de_clean, aes(x = log2FoldChange, y = -log10(pvalue), color
 print(gg_volcano)
 ```
 
+En @fig-volcano-plot se pueden apreciar los genes diferencialmente expresados para las muestras, con el tratamiento Batch vs. Condition. A la derecha podemos ver los genes que están expresados positivamente en Batch, a la izquierda el caso contrario. En el eje y ($-log10(pvalue)$) podemos ver también la confianza que se tiene de esa expresión diferencial. Además tenemos ciertos valores umbrales (las líneas interlineadas rojas) que se tienen en cuenta para ser considerados como diferencialmente expresados.
+
 ## Volcano plot para genes que no codifican proteínas
 
 ```{r}
+#| label: fig-volcano-plot-no-codificanfo
+#| fig-cap: "Volcano plot para los genes diferencialmente expresados que no codifican para proteínas con el tratamiento Batch vs. Quimiostato"
 de_clean_no_p <- de_clean %>% 
   filter(is.na(p_id))
 
@@ -422,13 +460,16 @@ gg_volcano <- ggplot(de_clean_no_p, aes(x = log2FoldChange, y = -log10(pvalue), 
 print(gg_volcano)
 ```
 
+En este caso se buscó graficar genes que hayan sido contados y no codifiquen para proteínas (se tomo que no tenga `p_id` como criterio). Sólo se observa *snR18* como up regulado, al inspeccionar en el explorador genómico (@fig-ilustracion-snr18) se ve que se sitúa en un intrón de YAL003W (EFB1) una de las regiones con más cobertura, por lo que puede ser esa la razón del ruido.
 
-# Análisis funcional con YeastEnrichr
+![Cromosoma uno y los archivos de cobertura para cada muestra, remarcado en rojo EFB1 y dentro snR18](images/clipboard-4091810527.png){#fig-ilustracion-snr18}
+
+# Enriquecimiento funcional con YeastEnrichr
 
 Reajusto los criterios para que sean más estrictos:
 
--  $padj < 0.01$
--  $|log_2(FC)| > 1$ (al menos duplicación/división por 2)
+-   $padj < 0.05$
+-   $|log_2(FC)| > 1$ (al menos duplicación/división por 2)
 
 Con estos criterior construyo dos listas, los genes upregulados $log_2(FC) > 1$ y downregulados $log_2(FC) < -1$
 
@@ -439,8 +480,9 @@ Con estos criterior construyo dos listas, los genes upregulados $log_2(FC) > 1$ 
 de_symbols_clean <- de_symbols %>%
   filter(!is.na(padj), !is.na(log2FoldChange), !is.na(gene_name))
 
-padj_corte <- 0.01
+padj_corte <- 0.05
 log2FoldChange_corte <- 1
+
 # Aplicar filtros estrictos
 de_filtrados_up <- de_symbols_clean %>%
   filter(
@@ -471,17 +513,13 @@ length(genes_interes_down)
 head(genes_interes_down)
 ```
 
+Se lleva a cabo un enriquecimiento con [YeastEnrichr](https://maayanlab.cloud/YeastEnrichr/). Esto se realiza a través de su API con el siguiente código. Primero hay que enviar la lista de genes que nos interesa analizar. Una vez que
+
 ## Upregulated
 
-Se lleva a cabo un enriquecimiento con [YeastEnrichr](https://maayanlab.cloud/YeastEnrichr/). Esto se realiza a través de su API con el siguiente código. Primero hay que enviar la lista de genes que nos interesa analizar. Una vez que 
-
 ### Envío de lista de genes de interés
-```{r}
-library(httr)
-library(jsonlite)
-library(dplyr)
-library(readr)
 
+```{r}
 # ---- Paso 1: Enviar la lista ----
 enviar_a_enrichr <- function(lista_genes, descripcion = "Lista de genes") {
   ENRICHR_ADD_URL <- "http://maayanlab.cloud/YeastEnrichr/addList"
@@ -523,14 +561,14 @@ resultado_down <- enviar_a_enrichr(genes_interes_down, "Lista de genes Downregul
 
 ### Obtención de resultados
 
-En este caso se corre el enriquecimiento con YeastEnrichr. Se define la función en R para poder correrlo pasando como argumento, el token de la lista de genes que obtuvimos en el paso anterior y el tipo de set de datos contra el que queremos que se contraste. Las bibliotecas disponibles pueden consultarse en (YeastEnrichr)[https://maayanlab.cloud/YeastEnrichr/#stats]. En este caso, se enriqueció para:
+En este caso se corre el enriquecimiento con YeastEnrichr. Se define la función en R para poder correrlo pasando como argumento, el token de la lista de genes que obtuvimos en el paso anterior y el tipo de set de datos contra el que queremos que se contraste. Las bibliotecas disponibles pueden consultarse en [YeastEnrichr](https://maayanlab.cloud/YeastEnrichr/#stats). En este caso, se enriqueció para:
 
-- GO_Biological_Process_2018
-- GO_Cellular_Component_2018
-- GO_Molecular_Function_2018
-- KEGG_2018
+-   GO_Biological_Process_2018
+-   GO_Cellular_Component_2018
+-   GO_Molecular_Function_2018
+-   KEGG_2018
 
-Se seleccionaron estas librerías porque son recursos de Gene Ontology o KEGG con una versión bien establecida, otorgando reproducibilidad. 
+Se seleccionaron estas librerías porque son recursos de Gene Ontology o KEGG con una versión bien establecida, otorgando reproducibilidad.
 
 ```{r}
 library(httr)
@@ -674,13 +712,11 @@ dotplot <- plot_dotplot(enrich_df, library_name)
 print(barplot)
 ```
 
-
 ```{r}
 #| label: fig-dotplot-go-biological-process
 #| fig-cap: "Dotplot of Biological processes from GO 2018 enriched"
 print(dotplot)
 ```
-
 
 #### GO Cellular Component 2018
 
@@ -695,7 +731,6 @@ dotplot <- plot_dotplot(enrich_df, library_name)
 
 print(barplot)
 ```
-
 
 ```{r}
 #| label: fig-dotplot-go-cellular-component
@@ -717,6 +752,7 @@ dotplot <- plot_dotplot(enrich_df, library_name)
 
 print(barplot)
 ```
+
 ```{r}
 #| label: fig-dotplot-go-molecular-function
 #| fig-cap: "Dotplot of Molecular function from GO 2018 enriched"
@@ -743,14 +779,13 @@ print(barplot)
 print(dotplot)
 ```
 
-### Downregulated
+## Downregulated
 
 ```{r}
 results_down <- lapply(gene_libraries, function(lib) {
   run_enrichr(resultado_down$userListId, lib, "../results/functional_enrichment/down_regulated")
 })
 ```
-
 
 #### GO Biological Process 2018
 
@@ -767,13 +802,11 @@ dotplot <- plot_dotplot(enrich_df, library_name)
 print(barplot)
 ```
 
-
 ```{r}
 #| label: fig-dotplot-go-biological-process-down
 #| fig-cap: "Dotplot of Biological processes from GO 2018 enriched"
 print(dotplot)
 ```
-
 
 #### GO Cellular Component 2018
 
@@ -788,7 +821,6 @@ dotplot <- plot_dotplot(enrich_df, library_name)
 
 print(barplot)
 ```
-
 
 ```{r}
 #| label: fig-dotplot-go-cellular-component-down
@@ -810,6 +842,7 @@ dotplot <- plot_dotplot(enrich_df, library_name)
 
 print(barplot)
 ```
+
 ```{r}
 #| label: fig-dotplot-go-molecular-function-down
 #| fig-cap: "Dotplot of Molecular function from GO 2018 enriched"
@@ -840,7 +873,7 @@ print(dotplot)
 
 Como se aclaró previamente, los datos con los que se ha trabajado hasta el momento son correspondientes a lecturas que alinean con el primer cromosoma. Por ello, se llevó a cabo un enriquecimiento funcional de una lista de genes diferencialmente expresados provista por la cátedra. A diferencia del análisis anterior, aquí no se cuenta con información sobre si están downregulados o upregulados los genes.
 
-Se utilizó la misma metodología de llamados a la api de YeastEnrichr.
+Se utilizó la misma metodología de llamados a la API de YeastEnrichr.
 
 ```{r}
 genes_extendidos = readLines('../data/genes_diff_exp/Genes_diferencialmente_expresados_signif.tabular')
@@ -871,4 +904,3 @@ for (librarie in gene_libraries) {
 }
 
 ```
-
