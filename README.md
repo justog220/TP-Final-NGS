@@ -1,9 +1,9 @@
 # Análisis de Expresión Génica en *Saccharomyces cerevisiae* bajo Diferentes Condiciones de Crecimiento
 
-**Autor:** Justo Garcia
-**Seminario:** Análisis de Secuencias de Nuevas Tecnologías de Secuenciación en Paralelo
-**Docente:** Ileana Tossolini
-**Carrera:** Licenciatura en Bioinformática - Facultad de Ingeniería, Universidad Nacional de Entre Ríos
+- **Autor:** Justo Garcia
+- **Seminario:** Análisis de Secuencias de Nuevas Tecnologías de Secuenciación en Paralelo
+- **Docente:** Ileana Tossolini
+- **Carrera:** Licenciatura en Bioinformática - Facultad de Ingeniería, Universidad Nacional de Entre Ríos
 
 ## 🎯 Objetivo
 
@@ -90,11 +90,15 @@ conda activate tp-final-ngs
 snakemake --cores all qc_all
 ```
 
+![Reglas del control de calidad](imgs/dag_qc.png)
+
 #### Mapeo al genoma de referencia
 
 ```bash
 snakemake --cores all mapping_all
 ```
+
+![Reglas de mapeo](imgs/dag_mapping.png)
 
 ## 📊 Análisis de expresión diferencial
 
