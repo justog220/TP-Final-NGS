@@ -1,0 +1,19 @@
+### /home/justo/miniconda3/envs/tp-final-ngs/bin/STAR-avx2   --runMode genomeGenerate      --runThreadN 4   --genomeDir results/mapping/index_STAR   --genomeFastaFiles data/reference/sacCer_ChrI.fa      --genomeSAindexNbases 7   --outFileNamePrefix sacCer_chr1   --sjdbGTFfile data/reference/sacCer_genes.gtf   --sjdbOverhang 100
+### GstrandBit 32
+versionGenome	2.7.4a
+genomeType	Full
+genomeFastaFiles	data/reference/sacCer_ChrI.fa 
+genomeSAindexNbases	7
+genomeChrBinNbits	18
+genomeSAsparseD	1
+genomeTransformType	None
+genomeTransformVCF	-
+sjdbOverhang	100
+sjdbFileChrStartEnd	- 
+sjdbGTFfile	data/reference/sacCer_genes.gtf
+sjdbGTFchrPrefix	-
+sjdbGTFfeatureExon	exon
+sjdbGTFtagExonParentTranscript	transcript_id
+sjdbGTFtagExonParentGene	gene_id
+sjdbInsertSave	Basic
+genomeFileSizes	263149 1907469

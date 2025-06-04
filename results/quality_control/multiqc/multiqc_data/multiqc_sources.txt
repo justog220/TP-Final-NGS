@@ -1,0 +1,13 @@
+Module	Section	Sample Name	Source
+FastQC	all_sections	batch1_1	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/batch1_1_fastqc.zip
+FastQC	all_sections	quimiostato1_2	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/quimiostato1_2_fastqc.zip
+FastQC	all_sections	quimiostato2_1	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/quimiostato2_1_fastqc.zip
+FastQC	all_sections	batch2_1	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/batch2_1_fastqc.zip
+FastQC	all_sections	batch1_2	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/batch1_2_fastqc.zip
+FastQC	all_sections	batch2_2	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/batch2_2_fastqc.zip
+FastQC	all_sections	quimiostato1_1	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/quimiostato1_1_fastqc.zip
+FastQC	all_sections	quimiostato3_2	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/quimiostato3_2_fastqc.zip
+FastQC	all_sections	quimiostato2_2	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/quimiostato2_2_fastqc.zip
+FastQC	all_sections	batch3_1	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/batch3_1_fastqc.zip
+FastQC	all_sections	quimiostato3_1	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/quimiostato3_1_fastqc.zip
+FastQC	all_sections	batch3_2	/home/justo/Documentos/5to año/TP-Final-NGS/results/quality_control/fastqc/batch3_2_fastqc.zip

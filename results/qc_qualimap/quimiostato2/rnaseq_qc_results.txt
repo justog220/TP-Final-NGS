@@ -1,0 +1,57 @@
+RNA-Seq QC report
+-----------------------------------
+
+>>>>>>> Input
+
+    bam file = results/mapping/alignments_STAR/quimiostato2/quimiostato2Aligned.sortedByCoord.out.bam
+    gff file = data/reference/sacCer_genes.gtf
+    counting algorithm = uniquely-mapped-reads
+    protocol = non-strand-specific
+    5'-3' bias region size = 100
+    5'-3' bias number of top transcripts = 1000
+
+
+>>>>>>> Reads alignment
+
+    reads aligned (left/right) = 0 / 0
+    read pairs aligned  = 0
+    total alignments = 94.545
+    secondary alignments = 222
+    non-unique alignments = 400
+    aligned to genes  = 71.424
+    ambiguous alignments = 13.135
+    no feature assigned = 9.586
+    not aligned = 0
+    SSP estimation (fwd/rev) = 0,5 / 0,5
+
+
+>>>>>>> Reads genomic origin
+
+    exonic =  71.424 (88,17%)
+    intronic = 227 (0,28%)
+    intergenic = 9.359 (11,55%)
+    overlapping exon = 10.039 (12,39%)
+
+
+>>>>>>> Transcript coverage profile
+
+    5' bias = 0,63
+    3' bias = 0,55
+    5'-3' bias = 1,18
+
+
+>>>>>>> Junction analysis
+
+    reads at junctions = 723
+
+    GGTA : 74,55%
+    CTGA : 21,02%
+    TTTT : 1,94%
+    GTTA : 0,55%
+    CCCT : 0,55%
+    GGGA : 0,14%
+    AAAG : 0,14%
+    AGTT : 0,14%
+    AGGG : 0,14%
+    CTTT : 0,14%
+    GGTC : 0,14%

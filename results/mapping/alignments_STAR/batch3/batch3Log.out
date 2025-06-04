@@ -1,0 +1,159 @@
+STAR version=2.7.11b
+STAR compilation time,server,dir=2025-04-26T21:36:55+0000 :/opt/conda/conda-bld/star_1745703265435/work/source
+##### Command Line:
+/home/justo/miniconda3/envs/tp-final-ngs/bin/STAR-avx2 --genomeDir results/mapping/index_STAR --readFilesIn data/reads/batch3_1.fastq,data/reads/batch3_2.fastq --outSAMtype BAM SortedByCoordinate --quantMode GeneCounts --outFileNamePrefix results/mapping/alignments_STAR/batch3/batch3 --runThreadN 4
+##### Initial USER parameters from Command Line:
+outFileNamePrefix                 results/mapping/alignments_STAR/batch3/batch3
+###### All USER parameters from Command Line:
+genomeDir                     results/mapping/index_STAR     ~RE-DEFINED
+readFilesIn                   data/reads/batch3_1.fastq,data/reads/batch3_2.fastq        ~RE-DEFINED
+outSAMtype                    BAM   SortedByCoordinate        ~RE-DEFINED
+quantMode                     GeneCounts        ~RE-DEFINED
+outFileNamePrefix             results/mapping/alignments_STAR/batch3/batch3     ~RE-DEFINED
+runThreadN                    4     ~RE-DEFINED
+##### Finished reading parameters from all sources
+
+##### Final user re-defined parameters-----------------:
+runThreadN                        4
+genomeDir                         results/mapping/index_STAR
+readFilesIn                       data/reads/batch3_1.fastq,data/reads/batch3_2.fastq   
+outFileNamePrefix                 results/mapping/alignments_STAR/batch3/batch3
+outSAMtype                        BAM   SortedByCoordinate   
+quantMode                         GeneCounts   
+
+-------------------------------
+##### Final effective command line:
+/home/justo/miniconda3/envs/tp-final-ngs/bin/STAR-avx2   --runThreadN 4   --genomeDir results/mapping/index_STAR   --readFilesIn data/reads/batch3_1.fastq,data/reads/batch3_2.fastq      --outFileNamePrefix results/mapping/alignments_STAR/batch3/batch3   --outSAMtype BAM   SortedByCoordinate      --quantMode GeneCounts   
+----------------------------------------
+
+Number of fastq files for each mate = 2
+
+   Input read files for mate 1 :
+-rw-rw-r-- 1 justo justo 10337307 may 13 14:52 data/reads/batch3_1.fastq
+-rw-rw-r-- 1 justo justo 9551573 may 13 14:52 data/reads/batch3_2.fastq
+
+   readsCommandsFile:
+exec > "results/mapping/alignments_STAR/batch3/batch3_STARtmp/tmp.fifo.read1"
+echo FILE 0
+cat      "data/reads/batch3_1.fastq"
+echo FILE 1
+cat      "data/reads/batch3_2.fastq"
+
+ParametersSolo: --soloCellFilterType CellRanger2.2 filtering parameters:  3000 0.99 10
+WARNING: --limitBAMsortRAM=0, will use genome size as RAM limit for BAM sorting
+Finished loading and checking parameters
+Reading genome generation parameters:
+### /home/justo/miniconda3/envs/tp-final-ngs/bin/STAR-avx2   --runMode genomeGenerate      --runThreadN 4   --genomeDir results/mapping/index_STAR   --genomeFastaFiles data/reference/sacCer_ChrI.fa      --genomeSAindexNbases 7   --outFileNamePrefix sacCer_chr1   --sjdbGTFfile data/reference/sacCer_genes.gtf   --sjdbOverhang 100
+### GstrandBit=32
+versionGenome                 2.7.4a     ~RE-DEFINED
+genomeType                    Full     ~RE-DEFINED
+genomeFastaFiles              data/reference/sacCer_ChrI.fa        ~RE-DEFINED
+genomeSAindexNbases           7     ~RE-DEFINED
+genomeChrBinNbits             18     ~RE-DEFINED
+genomeSAsparseD               1     ~RE-DEFINED
+genomeTransformType           None     ~RE-DEFINED
+genomeTransformVCF            -     ~RE-DEFINED
+sjdbOverhang                  100     ~RE-DEFINED
+sjdbFileChrStartEnd           -        ~RE-DEFINED
+sjdbGTFfile                   data/reference/sacCer_genes.gtf     ~RE-DEFINED
+sjdbGTFchrPrefix              -     ~RE-DEFINED
+sjdbGTFfeatureExon            exon     ~RE-DEFINED
+sjdbGTFtagExonParentTranscripttranscript_id     ~RE-DEFINED
+sjdbGTFtagExonParentGene      gene_id     ~RE-DEFINED
+sjdbInsertSave                Basic     ~RE-DEFINED
+genomeFileSizes               263149   1907469        ~RE-DEFINED
+Genome version is compatible with current STAR
+Number of real (reference) chromosomes= 1
+1	chrI	230208	0
+--sjdbOverhang = 100 taken from the generated genome
+Started loading the genome: Fri May 30 19:30:08 2025
+
+Genome: size given as a parameter = 263149
+SA: size given as a parameter = 1907469
+SAindex: size given as a parameter = 1
+Read from SAindex: pGe.gSAindexNbases=7  nSAi=21844
+nGenome=263149;  nSAbyte=1907469
+GstrandBit=32   SA number of indices=462416
+Shared memory is not used for genomes. Allocated a private copy of the genome.
+Genome file size: 263149 bytes; state: good=1 eof=0 fail=0 bad=0
+Loading Genome ... done! state: good=1 eof=0 fail=0 bad=0; loaded 263149 bytes
+SA file size: 1907469 bytes; state: good=1 eof=0 fail=0 bad=0
+Loading SA ... done! state: good=1 eof=0 fail=0 bad=0; loaded 1907469 bytes
+Loading SAindex ... done: 95643 bytes
+Finished loading the genome: Fri May 30 19:30:08 2025
+
+Processing splice junctions database sjdbN=5,   pGe.sjdbOverhang=100 
+alignIntronMax=alignMatesGapMax=0, the max intron size will be approximately determined by (2^winBinNbits)*winAnchorDistNbins=589824
+Created thread # 1
+Starting to map file # 0
+mate 1:   data/reads/batch3_1.fastq
+Created thread # 2
+Created thread # 3
+Starting to map file # 1
+mate 1:   data/reads/batch3_2.fastq
+Thread #1 end of input stream, nextChar=-1
+Completed: thread #2
+Completed: thread #0
+Completed: thread #3
+BAM sorting: 93725 mapped reads
+BAM sorting bins genomic start loci:
+1	0	36130
+2	0	46513
+3	0	57185
+4	0	58307
+5	0	61741
+6	0	65905
+7	0	71790
+8	0	71876
+9	0	71962
+10	0	72072
+11	0	72167
+12	0	72284
+13	0	72374
+14	0	72468
+15	0	72588
+16	0	72720
+17	0	72834
+18	0	72939
+19	0	73027
+20	0	73112
+21	0	73234
+22	0	76567
+23	0	77856
+24	0	79255
+25	0	88820
+26	0	98644
+27	0	106325
+28	0	107509
+29	0	110361
+30	0	117377
+31	0	126392
+32	0	130934
+33	0	131638
+34	0	137624
+35	0	139838
+36	0	140237
+37	0	140740
+38	0	142174
+39	0	142684
+40	0	142851
+41	0	143006
+42	0	143246
+43	0	153263
+44	0	155746
+45	0	165707
+46	0	169443
+47	0	169931
+48	0	184250
+Completed: thread #1
+Joined thread # 1
+Joined thread # 2
+Joined thread # 3
+May 30 19:30:09 ..... finished mapping
+RAM after mapping:
+VmPeak:	  820352 kB; VmSize:	  772500 kB; VmHWM:	  462800 kB; VmRSS:	  442196 kB; 
+RAM after freeing genome index memory:
+VmPeak:	  820352 kB; VmSize:	  770376 kB; VmHWM:	  462800 kB; VmRSS:	  440164 kB; 
+May 30 19:30:09 ..... started sorting BAM
+Max memory needed for sorting = 490935
+ALL DONE!
